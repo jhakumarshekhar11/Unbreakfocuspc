@@ -1,0 +1,41 @@
+name: Build Unbreakfocus WinUI 3
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Restore NuGet Packages
+      run: dotnet restore Unbreakfocuspc.csproj
+
+    - name: Publish App (Self-Contained)
+      run: >
+        dotnet publish Unbreakfocuspc.csproj
+        -f net8.0-windows10.0.19041.0
+        -c Release
+        -r win10-x64
+        --self-contained true
+        -p:PublishSingleFile=true
+        -p:IncludeNativeLibrariesForSelfExtract=true
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Unbreakfocus-Desktop-Release
+        path: bin/Release/net8.0-windows10.0.19041.0/win10-x64/publish/

@@ -1,55 +1,36 @@
-# Prerequisites
-*.d
+## Visual Studio / .NET Core
+[Bb]in/
+[Oo]bj/
+out/
+.vs/
+.vscode/
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+## User-specific files
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
 
-# Linker output
-*.ilk
-*.map
-*.exp
+## Windows-specific
+Thumbs.db
+desktop.ini
 
-# Precompiled Headers
-*.gch
-*.pch
+## WinUI 3 Specific Build Artifacts
+*.generated.cs
+*_i.c
+*_p.c
+*_h.h
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.rsp
+*.pgc
+*.pgd
+*.meta
+*.tlog
+*.lastbuildstate
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
-*.dwo
+## Local App Data (Where your JSON will live)
+# We ignore this so your personal focus history doesn't go public
+app_data.json
