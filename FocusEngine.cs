@@ -16,48 +16,43 @@ namespace Unbreakfocus.Desktop
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         public event EventHandler<string> OnDistractionDetected;
-
         private CancellationTokenSource _cts;
-        private readonly HashSet<string> _blocklist = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "discord", "msedge", "chrome", "firefox", "brave", "whatsapp", "telegram", "spotify"
+
+        // Add the PC apps you want to block here
+        private readonly HashSet<string> _blocklist = new(StringComparer.OrdinalIgnoreCase) 
+        { 
+            "chrome", "msedge", "brave", "firefox", "discord", "spotify", "whatsapp" 
         };
 
         public void StartShield()
         {
             _cts = new CancellationTokenSource();
-            Task.Run(() => WatchdogLoop(_cts.Token), _cts.Token);
+            Task.Run(() => WatchdogLoop(_cts.Token));
         }
 
-        public void StopShield()
-        {
-            _cts?.Cancel();
-        }
+        public void StopShield() => _cts?.Cancel();
 
         private async Task WatchdogLoop(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
-                try
+                IntPtr hWnd = GetForegroundWindow();
+                if (hWnd != IntPtr.Zero)
                 {
-                    IntPtr hWnd = GetForegroundWindow();
-                    if (hWnd != IntPtr.Zero)
+                    GetWindowThreadProcessId(hWnd, out uint processId);
+                    try
                     {
-                        GetWindowThreadProcessId(hWnd, out uint processId);
                         Process proc = Process.GetProcessById((int)processId);
-                        
-                        string processName = proc.ProcessName.ToLower();
+                        string name = proc.ProcessName;
 
-                        if (_blocklist.Contains(processName))
+                        if (_blocklist.Contains(name))
                         {
-                            // Trigger overlay on UI thread via event
-                            OnDistractionDetected?.Invoke(this, processName.ToUpper());
+                            OnDistractionDetected?.Invoke(this, name.ToUpper());
                         }
                     }
+                    catch { /* System process access denied */ }
                 }
-                catch (Exception) { /* Ignore access denied exceptions for system processes */ }
-
-                await Task.Delay(2000, token); // Check every 2 seconds
+                await Task.Delay(2000, token); // Scan every 2 seconds
             }
         }
     }
