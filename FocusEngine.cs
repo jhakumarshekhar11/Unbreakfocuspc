@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Unbreakfocus.Desktop
+namespace Unbreakfocuspc
 {
     public class FocusEngine
     {
