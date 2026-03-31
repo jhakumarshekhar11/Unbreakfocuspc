@@ -14,7 +14,6 @@ namespace Unbreakfocuspc
         private int _sessionSeconds = 0;
         private Microsoft.UI.Windowing.AppWindow _appWindow;
 
-        // 🟢 CRITICAL FIX 3: Instantiated immediately so XAML never sees 'null'
         public ObservableCollection<Subject> SubjectsData { get; } = new ObservableCollection<Subject>();
         public ObservableCollection<CalendarDay> CalendarDays { get; } = new ObservableCollection<CalendarDay>();
 
@@ -22,32 +21,47 @@ namespace Unbreakfocuspc
 
         public MainWindow()
         {
-            // 1. Data load before UI
-            DataManager.Instance.LoadUser();
-
-            // 2. The parser runs here
-            this.InitializeComponent();
-
-            IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
-            _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-            _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
-
-            string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
-            if (System.IO.File.Exists(iconPath))
+            try
             {
-                _appWindow.SetIcon(iconPath);
+                // 1. Data load MUST happen before UI
+                DataManager.Instance.LoadUser();
+
+                // 2. Parse XAML without bindings fighting the system
+                this.InitializeComponent();
+
+                // 3. 🟢 Safely attach Data context now that the UI exists
+                if (CalendarGrid != null) CalendarGrid.ItemsSource = CalendarDays;
+                if (SubjectsList != null) SubjectsList.ItemsSource = SubjectsData;
+
+                // 4. Setup Window
+                IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
+                _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+                _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
+
+                string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
+                if (System.IO.File.Exists(iconPath))
+                {
+                    _appWindow.SetIcon(iconPath);
+                }
+
+                // 5. Engine & Timers
+                _engine = new FocusEngine();
+                _engine.OnDistractionDetected += Engine_DistractionDetected;
+
+                _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+                _timer.Tick += Timer_Tick;
+
+                CheckFirstRun();
+                UpdateUI();
+                GenerateCalendar();
             }
-
-            _engine = new FocusEngine();
-            _engine.OnDistractionDetected += Engine_DistractionDetected;
-
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _timer.Tick += Timer_Tick;
-
-            CheckFirstRun();
-            UpdateUI();
-            GenerateCalendar();
+            catch (Exception ex)
+            {
+                string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                System.IO.File.WriteAllText(System.IO.Path.Combine(desktop, "UF_Init_Error.txt"), ex.ToString());
+                throw;
+            }
         }
 
         private void FullScreen_Click(object sender, RoutedEventArgs e)
@@ -76,7 +90,6 @@ namespace Unbreakfocuspc
 
             var item = args.SelectedItem as NavigationViewItem;
             var tag = item?.Tag?.ToString();
-            
             HubView.Visibility = tag == "Hub" ? Visibility.Visible : Visibility.Collapsed;
             FocusView.Visibility = tag == "Focus" ? Visibility.Visible : Visibility.Collapsed;
             SettingsView.Visibility = Visibility.Collapsed;
@@ -90,7 +103,7 @@ namespace Unbreakfocuspc
             SubjectsData.Clear();
             foreach (var sub in user.Subjects) SubjectsData.Add(sub);
 
-            UserNameTxt.Text = user.UserName.ToUpper();
+            UserNameTxt.Text = user.UserName?.ToUpper() ?? "ASPIRANT";
             XpTxt.Text = $"LEVEL {user.Level} • {user.Xp} XP";
             LevelProgress.Value = user.LevelProgress * 100;
             StreakTxt.Text = $"{user.Streak} DAYS";
@@ -119,12 +132,10 @@ namespace Unbreakfocuspc
         private void InitializeProfile_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(NewUserNameEntry.Text)) return;
-            
             var user = DataManager.Instance.CurrentUser;
             user.UserName = NewUserNameEntry.Text;
             user.Target = (TargetPicker.SelectedItem as ComboBoxItem)?.Content.ToString();
             user.TargetDate = TargetDateEntry.Date.DateTime;
-            
             DataManager.Instance.SaveUser();
             OnboardingOverlay.Visibility = Visibility.Collapsed;
             UpdateUI();
@@ -143,7 +154,6 @@ namespace Unbreakfocuspc
         {
             var id = (sender as Button)?.Tag?.ToString();
             var subject = DataManager.Instance.CurrentUser.Subjects.FirstOrDefault(s => s.Id == id);
-            
             if (subject != null)
             {
                 _editingSubjectId = id;
@@ -159,7 +169,6 @@ namespace Unbreakfocuspc
         private void SaveSubject_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(SubjectNameEntry.Text)) return;
-            
             var user = DataManager.Instance.CurrentUser;
             int goal = int.TryParse(SubjectGoalEntry.Text, out int g) ? g : 60;
 
@@ -193,16 +202,15 @@ namespace Unbreakfocuspc
             {
                 DateTime dayDate = new DateTime(now.Year, now.Month, i);
                 string key = dayDate.ToString("yyyy-MM-dd");
-                
-                string hexColor = "#1A1A1A"; 
-                
+                string hexColor = "#1A1A1A";
+
                 if (dayDate.Date < now.Date)
                 {
                     if (user.History.TryGetValue(key, out int minsDone))
                     {
-                        if (minsDone >= dailyGoal) hexColor = "#FBBF24"; 
-                        else if (minsDone > 0) hexColor = "#38BDF8";     
-                        else hexColor = "#EF4444";                       
+                        if (minsDone >= dailyGoal) hexColor = "#FBBF24";
+                        else if (minsDone > 0) hexColor = "#38BDF8";
+                        else hexColor = "#EF4444";
                     }
                 }
                 else if (dayDate.Date == now.Date)
@@ -212,12 +220,7 @@ namespace Unbreakfocuspc
                     else if (currentMins > 0) hexColor = "#38BDF8";
                 }
 
-                CalendarDays.Add(new CalendarDay 
-                { 
-                    Day = i, 
-                    HexColor = hexColor, 
-                    IsToday = (dayDate.Date == now.Date) 
-                });
+                CalendarDays.Add(new CalendarDay { Day = i, HexColor = hexColor, IsToday = (dayDate.Date == now.Date) });
             }
         }
 
@@ -226,12 +229,7 @@ namespace Unbreakfocuspc
             var user = DataManager.Instance.CurrentUser;
             double multiplier = 1.0 + (Math.Min(user.Streak, 25) * 0.02);
             int bonusPercent = (int)((multiplier - 1.0) * 100);
-
-            AnalyticsDetailsTxt.Text = $"Current Rank: {user.Level}\n" +
-                                       $"Lifetime XP: {user.LifetimeXp}\n\n" +
-                                       $"STREAK BONUS ACTIVE\n" +
-                                       $"Your streak is currently generating a +{bonusPercent}% bonus to all XP earned.";
-            
+            AnalyticsDetailsTxt.Text = $"Current Rank: {user.Level}\nLifetime XP: {user.LifetimeXp}\n\nSTREAK BONUS: +{bonusPercent}%";
             AnalyticsOverlay.Visibility = Visibility.Visible;
         }
 
@@ -241,10 +239,8 @@ namespace Unbreakfocuspc
         {
             var id = (sender as Button)?.Tag?.ToString();
             _currentSubject = DataManager.Instance.CurrentUser.Subjects.First(s => s.Id == id);
-            
             EngineSubjectTxt.Text = _currentSubject.Name.ToUpper();
             UpdateTimerText();
-            
             SubjectDashboard.Visibility = Visibility.Collapsed;
             ActiveEngineView.Visibility = Visibility.Visible;
         }
@@ -252,35 +248,20 @@ namespace Unbreakfocuspc
         private void UpdateTimerText()
         {
             if (_currentSubject == null) return;
-            
             int goalSecs = _currentSubject.GoalMins * 60;
             int remaining = Math.Max(0, goalSecs - _currentSubject.TimeDone);
             int overtime = Math.Max(0, _currentSubject.TimeDone - goalSecs);
-
             int display = remaining > 0 ? remaining : overtime;
             string prefix = remaining == 0 ? "+" : "";
-            
             TimeSpan ts = TimeSpan.FromSeconds(display);
             TimerDisplay.Text = $"{prefix}{ts.Minutes:D2}:{ts.Seconds:D2}";
-            TimerDisplay.Foreground = remaining == 0 ? 
-                new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.SpringGreen) : 
-                new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
+            TimerDisplay.Foreground = remaining == 0 ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.SpringGreen) : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
         }
 
         private void StartTimer_Click(object sender, RoutedEventArgs e)
         {
-            if (_timer.IsEnabled)
-            {
-                if (DataManager.Instance.CurrentUser.IsStrictMode) return; 
-                _timer.Stop();
-                _engine.StopShield();
-            }
-            else
-            {
-                _timer.Start();
-                _engine.StartShield();
-                DataManager.Instance.CurrentUser.IsStrictMode = true;
-            }
+            if (_timer.IsEnabled) { _timer.Stop(); _engine.StopShield(); }
+            else { _timer.Start(); _engine.StartShield(); DataManager.Instance.CurrentUser.IsStrictMode = true; }
         }
 
         private void Timer_Tick(object sender, object e)
@@ -289,73 +270,38 @@ namespace Unbreakfocuspc
             _sessionSeconds++;
             user.DailyGlobalSeconds++;
             _currentSubject.TimeDone++;
-
-            double baseXp = 0.2 / 60.0;
-            double streakBonus = 1.0 + (Math.Min(user.Streak, 25) * 0.02);
-            _currentSubject.XpBuffer += (baseXp * streakBonus);
-
-            if (_currentSubject.XpBuffer >= 1.0)
-            {
-                int earned = (int)_currentSubject.XpBuffer;
-                user.Xp += earned;
-                user.LifetimeXp += earned;
-                _currentSubject.XpBuffer -= earned;
-            }
-
+            _currentSubject.XpBuffer += (0.2 / 60.0);
+            if (_currentSubject.XpBuffer >= 1.0) { user.Xp++; user.LifetimeXp++; _currentSubject.XpBuffer -= 1.0; }
             if (_sessionSeconds % 30 == 0) DataManager.Instance.SaveUser();
             UpdateTimerText();
         }
 
         private void AbortTimer_Click(object sender, RoutedEventArgs e)
         {
-            _timer.Stop();
-            _engine.StopShield();
-
+            _timer.Stop(); _engine.StopShield();
             var user = DataManager.Instance.CurrentUser;
-            if (user.IsStrictMode)
-            {
-                int penalty = Math.Min(1000, (int)(user.Xp * 0.25));
-                user.Xp -= penalty;
-                user.Streak = 0;
-            }
-
-            _sessionSeconds = 0;
+            if (user.IsStrictMode) { user.Xp -= (int)(user.Xp * 0.25); user.Streak = 0; }
             DataManager.Instance.SaveUser();
-            
             ActiveEngineView.Visibility = Visibility.Collapsed;
             SubjectDashboard.Visibility = Visibility.Visible;
-            
             UpdateUI();
-            GenerateCalendar(); 
+            GenerateCalendar();
         }
 
         private void StrictMode_Toggled(object sender, RoutedEventArgs e)
         {
-            if (StrictModeToggle != null && StrictModeToggle.IsOn)
-            {
-                DataManager.Instance.CurrentUser.IsStrictMode = true;
-                DataManager.Instance.SaveUser();
-            }
+            if (StrictModeToggle.IsOn) { DataManager.Instance.CurrentUser.IsStrictMode = true; DataManager.Instance.SaveUser(); }
         }
-        
+
         private async void ShowCredits_Click(object sender, RoutedEventArgs e)
         {
-            ContentDialog creditsDialog = new ContentDialog
-            {
-                Title = "CONSTRUCTORS",
-                Content = "DEVELOPER: SHEKHAR KUMAR JHA\n\nBuilt for Academic Dominance.\nVersion 2.5.0 (Windows Native)",
-                CloseButtonText = "RESUME MISSION",
-                XamlRoot = this.Content.XamlRoot
-            };
-            await creditsDialog.ShowAsync();
+            ContentDialog cd = new ContentDialog { Title = "CONSTRUCTORS", Content = "DEVELOPER: SHEKHAR KUMAR JHA\n\nBuilt for Academic Dominance.\nVersion 2.5.0 (Windows Native)", CloseButtonText = "RESUME MISSION", XamlRoot = this.Content.XamlRoot };
+            await cd.ShowAsync();
         }
 
         private void Engine_DistractionDetected(object sender, string app)
         {
-            DispatcherQueue.TryEnqueue(() => {
-                DistractedAppTxt.Text = $"DETECTION: {app}";
-                OverlayBlocker.Visibility = Visibility.Visible;
-            });
+            DispatcherQueue.TryEnqueue(() => { DistractedAppTxt.Text = $"DETECTION: {app}"; OverlayBlocker.Visibility = Visibility.Visible; });
         }
 
         private void DismissBlocker_Click(object sender, RoutedEventArgs e) => OverlayBlocker.Visibility = Visibility.Collapsed;
