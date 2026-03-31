@@ -33,6 +33,26 @@ namespace Unbreakfocuspc
             _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
             _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
 
+            // System backdrop via runtime guard (avoids XAML parse crash on unsupported platforms)
+            if (Microsoft.UI.Xaml.Media.MicaBackdrop.IsSupported())
+            {
+                var mica = new Microsoft.UI.Xaml.Media.MicaBackdrop
+                {
+                    Kind = Microsoft.UI.Xaml.Media.MicaBackdropKind.Base
+                };
+                this.SystemBackdrop = mica;
+            }
+            else if (Microsoft.UI.Xaml.Media.DesktopAcrylicBackdrop.IsSupported())
+            {
+                var acrylic = new Microsoft.UI.Xaml.Media.DesktopAcrylicBackdrop
+                {
+                    TintColor = Microsoft.UI.Colors.Black,
+                    TintOpacity = 0.86f,
+                    LuminousOpacity = 0.6f
+                };
+                this.SystemBackdrop = acrylic;
+            }
+
             // Setup Engine
             _engine = new FocusEngine();
             _engine.OnDistractionDetected += Engine_DistractionDetected;
