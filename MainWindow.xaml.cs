@@ -16,9 +16,9 @@ namespace Unbreakfocuspc
         {
             this.InitializeComponent();
             
-            // Setup Native Window (Size & Icon)
+            // 🟢 THE FIX: Correct WinUI 3 Interop call for the Window ID
             IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var windowId = Microsoft.UI.GetWindowIdFromWindowHandle(hWnd);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
             
             _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
