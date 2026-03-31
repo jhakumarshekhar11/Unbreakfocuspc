@@ -21,19 +21,17 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Restore Dependencies
-      # 🟢 Added -p:Platform=x64 here too just to be safe
       run: dotnet restore Unbreakfocuspc.csproj -p:Platform=x64
 
     - name: Publish Standalone App
-      # 🟢 FIX: Added -p:Platform=x64 to the publish command
+      # 🟢 FIX: Removed PublishReadyToRun to stabilize XamlCompiler
       run: >
         dotnet publish Unbreakfocuspc.csproj 
         -f net8.0-windows10.0.19041.0 
         -c Release 
         -r win-x64 
         -p:Platform=x64
-        --self-contained true 
-        -p:PublishReadyToRun=true
+        --self-contained true
 
     - name: Upload Release Artifact
       uses: actions/upload-artifact@v4
