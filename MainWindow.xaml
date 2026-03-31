@@ -81,7 +81,7 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="local:CalendarDay">
-                                        <Border Width="40" Height="40" Margin="5" CornerRadius="8" Background="{x:Bind HexColor}" BorderBrush="White" BorderThickness="{x:Bind IsToday}">
+                                        <Border Width="40" Height="40" Margin="5" CornerRadius="8" Background="{x:Bind HexColor}" BorderBrush="White" BorderThickness="{x:Bind BorderSize}">
                                             <TextBlock Text="{x:Bind Day}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
                                         </Border>
                                     </DataTemplate>
@@ -111,7 +111,11 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{x:Bind Name}" FontWeight="Bold" Foreground="White" FontSize="16"/>
-                                                <TextBlock Text="{x:Bind GoalMins} MINS GOAL" Foreground="Gray" FontSize="12" Margin="0,4,0,0"/>
+                                                
+                                                <TextBlock Foreground="Gray" FontSize="12" Margin="0,4,0,0">
+                                                    <Run Text="{x:Bind GoalMins}"/>
+                                                    <Run Text=" MINS GOAL"/>
+                                                </TextBlock>
                                             </StackPanel>
                                             
                                             <Button Grid.Column="1" Margin="0,0,10,0" Background="Transparent" BorderThickness="0" Click="EditSubject_Click" Tag="{x:Bind Id}">

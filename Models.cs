@@ -25,8 +25,11 @@ namespace Unbreakfocuspc
     public class CalendarDay
     {
         public int Day { get; set; }
-        public string HexColor { get; set; } = "#1A1A1A"; // Default Gray
+        public string HexColor { get; set; } = "#1A1A1A"; 
         public bool IsToday { get; set; }
+        
+        // 🟢 PROACTIVE FIX: Converts the boolean into a valid BorderThickness number
+        public int BorderSize => IsToday ? 2 : 0; 
     }
 
     public class UserData
