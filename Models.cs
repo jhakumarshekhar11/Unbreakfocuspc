@@ -33,8 +33,8 @@ namespace Unbreakfocuspc
         public string HexColor { get; set; } = "#1A1A1A";
         public bool IsToday { get; set; }
     
-        // 🟢 FIX: Strings are 100% safe for XAML TypeConverters to parse
-        public string BorderSize => IsToday ? "2" : "0";
+        // 🟢 FIX: Return double for BorderThickness binding (numeric values are safer)
+        public double BorderSize => IsToday ? 2.0 : 0.0;
         public string BackgroundBrush => HexColor;
     }
 
