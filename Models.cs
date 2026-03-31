@@ -30,26 +30,24 @@ namespace Unbreakfocuspc
     public class CalendarDay
     {
         public int Day { get; set; }
-        
-        // Safe string binding for the day number
         public string DayText => Day.ToString();
-        
-        public string HexColor { get; set; } = "#1A1A1A"; // Default Gray
+        public string HexColor { get; set; } = "#1A1A1A";
         public bool IsToday { get; set; }
-        
-        public Microsoft.UI.Xaml.Thickness BorderSize => IsToday ? new Microsoft.UI.Xaml.Thickness(2) : new Microsoft.UI.Xaml.Thickness(0);
-
-        // Translates the Hex string into a native WinUI 3 Brush
+    
+        // WinUI 3 is extremely picky about Thickness and Brushes in x:Bind
+        public Microsoft.UI.Xaml.Thickness BorderSize => IsToday 
+            ? new Microsoft.UI.Xaml.Thickness(2) 
+            : new Microsoft.UI.Xaml.Thickness(0);
+    
         public Microsoft.UI.Xaml.Media.SolidColorBrush BackgroundBrush
         {
             get
             {
-                byte r = 26, g = 26, b = 26; // Default Gray #1A1A1A
-                if (HexColor == "#FBBF24") { r = 251; g = 191; b = 36; }      // Amber
-                else if (HexColor == "#38BDF8") { r = 56; g = 189; b = 248; } // Sky
-                else if (HexColor == "#EF4444") { r = 239; g = 68; b = 68; }  // Red
-                
-                return new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, r, g, b));
+                // Manual color mapping to avoid complex hex parsing during UI draw
+                if (HexColor == "#FBBF24") return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 251, 191, 36)); // Amber
+                if (HexColor == "#38BDF8") return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 56, 189, 248)); // Sky
+                if (HexColor == "#EF4444") return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 239, 68, 68));  // Red
+                return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 26)); // Default Gray
             }
         }
     }
