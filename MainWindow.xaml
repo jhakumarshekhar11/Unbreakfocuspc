@@ -5,11 +5,7 @@
     xmlns:local="using:Unbreakfocuspc"
     Title="Unbreakfocus">
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop Kind="Base" />
-    </Window.SystemBackdrop>
-
-    <Grid RequestedTheme="Dark" Background="#E60A0A0A">
+    <Grid RequestedTheme="Dark" Background="#0A0A0A">
         <NavigationView x:Name="MainNav" SelectionChanged="MainNav_SelectionChanged" IsSettingsVisible="True" IsBackButtonVisible="Collapsed">
             
             <NavigationView.PaneHeader>
@@ -38,6 +34,7 @@
             </NavigationView.MenuItems>
 
             <Grid Padding="20">
+                
                 <ScrollViewer x:Name="HubView" Visibility="Visible">
                     <StackPanel Spacing="20" MaxWidth="800" HorizontalAlignment="Left">
                         <Grid>
@@ -94,6 +91,7 @@
                             <TextBlock Text="SUBJECTS" FontSize="24" FontWeight="Bold" Foreground="#38BDF8"/>
                             <Button Content="+ NEW SUBJECT" Background="#38BDF8" Foreground="Black" FontWeight="Bold" HorizontalAlignment="Right" Click="OpenSubjectEditor_Click"/>
                         </Grid>
+
                         <ListView x:Name="SubjectsList" ItemsSource="{x:Bind SubjectsData, Mode=OneWay}" SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="local:Subject">
@@ -103,9 +101,11 @@
                                                 <TextBlock Text="{x:Bind Name}" FontWeight="Bold" Foreground="White" FontSize="16"/>
                                                 <TextBlock Text="{x:Bind GoalMinsText}" Foreground="Gray" FontSize="12" Margin="0,4,0,0"/>
                                             </StackPanel>
+                                            
                                             <Button Grid.Column="1" Margin="0,0,10,0" Background="Transparent" BorderThickness="0" Click="EditSubject_Click" Tag="{x:Bind Id}">
                                                 <SymbolIcon Symbol="Edit" Foreground="Gray"/>
                                             </Button>
+                                            
                                             <Button Grid.Column="2" Background="#38BDF8" Foreground="Black" CornerRadius="20" Width="40" Height="40" Click="LaunchEngine_Click" Tag="{x:Bind Id}">
                                                 <SymbolIcon Symbol="Play"/>
                                             </Button>
@@ -119,16 +119,16 @@
                     <StackPanel x:Name="ActiveEngineView" Visibility="Collapsed" Spacing="20" VerticalAlignment="Center">
                         <TextBlock x:Name="EngineSubjectTxt" FontSize="18" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Center"/>
                         <TextBlock x:Name="TimerDisplay" FontSize="100" FontWeight="Bold" FontFamily="Consolas" HorizontalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20">
-                            <Button Content="PAUSE / RESUME" Background="#38BDF8" Foreground="Black" FontWeight="Bold" Click="StartTimer_Click"/>
-                            <Button Content="ABORT" Background="#EF4444" Foreground="White" FontWeight="Bold" Click="AbortTimer_Click"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20" Margin="0,40,0,0">
+                            <Button Content="PAUSE / RESUME" Background="#38BDF8" Foreground="Black" FontWeight="Bold" Width="150" Height="50" Click="StartTimer_Click"/>
+                            <Button Content="ABORT" Background="#EF4444" Foreground="White" FontWeight="Bold" Width="150" Height="50" Click="AbortTimer_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
 
                 <StackPanel x:Name="SettingsView" Visibility="Collapsed" Spacing="20" MaxWidth="600" HorizontalAlignment="Left">
                     <TextBlock Text="SYSTEM PREFERENCES" FontSize="24" FontWeight="Bold" Foreground="#38BDF8"/>
-                    <Border Background="#161616" CornerRadius="12" Padding="20">
+                    <Border Background="#161616" CornerRadius="12" Padding="20" BorderBrush="#262626" BorderThickness="1">
                         <StackPanel Spacing="15">
                             <ToggleSwitch x:Name="StrictModeToggle" Header="Strict Mode" Toggled="StrictMode_Toggled" />
                             <Button Content="VIEW CONSTRUCTORS (CREDITS)" Click="ShowCredits_Click" Background="#262626" Foreground="White" HorizontalAlignment="Stretch"/>
@@ -137,25 +137,26 @@
                 </StackPanel>
                 
                 <Grid x:Name="SubjectEditorOverlay" Visibility="Collapsed" Canvas.ZIndex="40" Background="#CC0A0A0A" Margin="-20">
-                    <Border Background="#161616" CornerRadius="16" Padding="30" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Background="#161616" CornerRadius="16" Padding="30" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center" BorderBrush="#262626" BorderThickness="1">
                         <StackPanel Spacing="20">
                             <TextBlock x:Name="SubjectEditorTitle" Text="NEW SUBJECT" FontSize="20" FontWeight="Black" Foreground="White"/>
                             <TextBox x:Name="SubjectNameEntry" Header="Subject Name" Foreground="White"/>
                             <TextBox x:Name="SubjectGoalEntry" Header="Daily Goal (Minutes)" Foreground="White"/>
                             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
                                 <Button Content="CANCEL" Click="CloseSubjectEditor_Click"/>
-                                <Button Content="SAVE SUBJECT" Background="#38BDF8" Foreground="Black" Click="SaveSubject_Click"/>
+                                <Button Content="SAVE SUBJECT" Background="#38BDF8" Foreground="Black" FontWeight="Bold" Click="SaveSubject_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
                 </Grid>
 
                 <Grid x:Name="AnalyticsOverlay" Visibility="Collapsed" Canvas.ZIndex="45" Background="#CC0A0A0A" Margin="-20">
-                    <Border Background="#161616" CornerRadius="16" Padding="30" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <Border Background="#161616" CornerRadius="16" Padding="30" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center" BorderBrush="#FB923C" BorderThickness="1">
                         <StackPanel Spacing="20" HorizontalAlignment="Center">
                             <TextBlock Text="🎯" FontSize="42" HorizontalAlignment="Center"/>
+                            <TextBlock Text="PERFORMANCE METRICS" FontSize="20" FontWeight="Black" Foreground="White" HorizontalAlignment="Center"/>
                             <TextBlock x:Name="AnalyticsDetailsTxt" Foreground="WhiteSmoke" TextAlignment="Center"/>
-                            <Button Content="CLOSE" Background="#38BDF8" Foreground="Black" HorizontalAlignment="Stretch" Click="CloseAnalytics_Click"/>
+                            <Button Content="CLOSE" Background="#38BDF8" Foreground="Black" FontWeight="Bold" HorizontalAlignment="Stretch" Click="CloseAnalytics_Click"/>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -172,7 +173,7 @@
                             <ComboBoxItem Content="Custom"/>
                         </ComboBox>
                         <DatePicker x:Name="TargetDateEntry" Header="Target Date"/>
-                        <Button Content="INITIALIZE SHIELD" HorizontalAlignment="Stretch" Height="50" Background="#38BDF8" Foreground="Black" Click="InitializeProfile_Click"/>
+                        <Button Content="INITIALIZE SHIELD" HorizontalAlignment="Stretch" Height="50" Background="#38BDF8" Foreground="Black" FontWeight="Bold" Click="InitializeProfile_Click"/>
                     </StackPanel>
                 </Grid>
 
@@ -180,9 +181,10 @@
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
                         <TextBlock Text="FOCUS BREACHED" Foreground="#EF4444" FontSize="48" FontWeight="Bold"/>
                         <TextBlock x:Name="DistractedAppTxt" Foreground="White" FontSize="20" HorizontalAlignment="Center"/>
-                        <Button Content="RETURN TO FOCUS" Background="#EF4444" Foreground="White" HorizontalAlignment="Center" Click="DismissBlocker_Click"/>
+                        <Button Content="RETURN TO FOCUS" Background="#EF4444" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" Click="DismissBlocker_Click"/>
                     </StackPanel>
                 </Grid>
+
             </Grid>
         </NavigationView>
     </Grid>

@@ -14,7 +14,7 @@ namespace Unbreakfocuspc
         private int _sessionSeconds = 0;
         private Microsoft.UI.Windowing.AppWindow _appWindow;
 
-        // 🟢 CRITICAL FIX: Data collections are initialized immediately
+        // 🟢 CRITICAL FIX 3: Instantiated immediately so XAML never sees 'null'
         public ObservableCollection<Subject> SubjectsData { get; } = new ObservableCollection<Subject>();
         public ObservableCollection<CalendarDay> CalendarDays { get; } = new ObservableCollection<CalendarDay>();
 
@@ -22,10 +22,10 @@ namespace Unbreakfocuspc
 
         public MainWindow()
         {
-            // Load user data so the collections have something to display
+            // 1. Data load before UI
             DataManager.Instance.LoadUser();
 
-            // Run XAML parsing AFTER data is ready
+            // 2. The parser runs here
             this.InitializeComponent();
 
             IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -74,7 +74,9 @@ namespace Unbreakfocuspc
                 return;
             }
 
-            var tag = (args.SelectedItem as NavigationViewItem)?.Tag?.ToString();
+            var item = args.SelectedItem as NavigationViewItem;
+            var tag = item?.Tag?.ToString();
+            
             HubView.Visibility = tag == "Hub" ? Visibility.Visible : Visibility.Collapsed;
             FocusView.Visibility = tag == "Focus" ? Visibility.Visible : Visibility.Collapsed;
             SettingsView.Visibility = Visibility.Collapsed;
