@@ -25,6 +25,11 @@ namespace Unbreakfocuspc
             // 🟢 FIX 2: Ensure data is loaded BEFORE the UI starts binding
             DataManager.Instance.LoadUser();
 
+            // 2. RUN THIS BEFORE InitializeComponent to ensure collections aren't null
+            if (SubjectsData == null) SubjectsData = new();
+            if (CalendarDays == null) CalendarDays = new();
+        
+            // 3. Now the UI can safely bind
             this.InitializeComponent();
             
             // Native Window Logic...

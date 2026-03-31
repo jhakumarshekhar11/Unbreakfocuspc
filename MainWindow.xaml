@@ -91,7 +91,7 @@
                             <Button Content="+ NEW SUBJECT" Background="#38BDF8" Foreground="Black" FontWeight="Bold" HorizontalAlignment="Right" Click="OpenSubjectEditor_Click"/>
                         </Grid>
 
-                        <ListView x:Name="SubjectsList" SelectionMode="None" CanReorderItems="True" AllowDrop="True">
+                        <ListView x:Name="SubjectsList" ItemsSource="{x:Bind SubjectsData, Mode=OneWay}" SelectionMode="None" CanReorderItems="True" AllowDrop="True">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="local:Subject">
                                     <Border Background="#161616" CornerRadius="12" Padding="15" Margin="0,0,0,10" BorderBrush="#262626" BorderThickness="1">
