@@ -1,4 +1,4 @@
-name: Build Unbreakfocus WinUI 3
+name: Build Unbreakfocus
 
 on:
   push:
