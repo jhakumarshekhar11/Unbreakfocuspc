@@ -22,14 +22,15 @@ namespace Unbreakfocuspc
     }
 
     // 🟢 NEW: Helper class to bind the Calendar UI
+    // 🟢 Helper class to bind the Calendar UI
     public class CalendarDay
     {
         public int Day { get; set; }
-        public string HexColor { get; set; } = "#1A1A1A"; 
+        public string HexColor { get; set; } = "#1A1A1A"; // Default Gray
         public bool IsToday { get; set; }
         
-        // 🟢 PROACTIVE FIX: Converts the boolean into a valid BorderThickness number
-        public int BorderSize => IsToday ? 2 : 0; 
+        // 🟢 THE FIX: Return a strongly-typed Thickness object for WinUI 3
+        public Microsoft.UI.Xaml.Thickness BorderSize => IsToday ? new Microsoft.UI.Xaml.Thickness(2) : new Microsoft.UI.Xaml.Thickness(0);
     }
 
     public class UserData
