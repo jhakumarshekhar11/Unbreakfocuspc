@@ -10,12 +10,6 @@
     </Window.SystemBackdrop>
 
     <Grid RequestedTheme="Dark" Background="#E60A0A0A">
-        <Grid.Resources>
-            <Storyboard x:Name="FadeInOverlay">
-                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.2"/>
-            </Storyboard>
-        </Grid.Resources>
-
         <NavigationView x:Name="MainNav" SelectionChanged="MainNav_SelectionChanged" IsSettingsVisible="True" IsBackButtonVisible="Collapsed">
             
             <NavigationView.PaneHeader>
@@ -111,11 +105,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{x:Bind Name}" FontWeight="Bold" Foreground="White" FontSize="16"/>
-                                                
-                                                <TextBlock Foreground="Gray" FontSize="12" Margin="0,4,0,0">
-                                                    <Run Text="{x:Bind GoalMinsText}"/>
-                                                    <Run Text=" MINS GOAL"/>
-                                                </TextBlock>
+                                                <TextBlock Text="{x:Bind GoalMinsText}" Foreground="Gray" FontSize="12" Margin="0,4,0,0"/>
                                             </StackPanel>
                                             
                                             <Button Grid.Column="1" Margin="0,0,10,0" Background="Transparent" BorderThickness="0" Click="EditSubject_Click" Tag="{x:Bind Id}">
@@ -172,7 +162,7 @@
                 <Grid x:Name="AnalyticsOverlay" Visibility="Collapsed" Canvas.ZIndex="45" Background="#CC0A0A0A" Margin="-20">
                     <Border Background="#161616" CornerRadius="16" Padding="30" Width="400" VerticalAlignment="Center" HorizontalAlignment="Center" BorderBrush="#FB923C" BorderThickness="1">
                         <StackPanel Spacing="20" HorizontalAlignment="Center">
-                            <SymbolIcon Symbol="Target" Foreground="#FB923C"/>
+                            <TextBlock Text="🎯" FontSize="42" HorizontalAlignment="Center"/>
                             <TextBlock Text="PERFORMANCE METRICS" FontSize="20" FontWeight="Black" Foreground="White" HorizontalAlignment="Center"/>
                             <TextBlock x:Name="AnalyticsDetailsTxt" Foreground="WhiteSmoke" TextWrapping="WrapWholeWords" TextAlignment="Center" LineHeight="24"/>
                             <Button Content="CLOSE" Background="#38BDF8" Foreground="Black" FontWeight="Bold" HorizontalAlignment="Stretch" Margin="0,20,0,0" Click="CloseAnalytics_Click"/>

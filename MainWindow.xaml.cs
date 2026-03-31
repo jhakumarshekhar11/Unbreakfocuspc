@@ -14,7 +14,6 @@ namespace Unbreakfocuspc
         private int _sessionSeconds = 0;
         private Microsoft.UI.Windowing.AppWindow _appWindow;
 
-        // 🟢 NEW: Observable collections auto-update the UI when changed
         public ObservableCollection<Subject> SubjectsData { get; set; } = new();
         public ObservableCollection<CalendarDay> CalendarDays { get; set; } = new();
 
@@ -30,7 +29,7 @@ namespace Unbreakfocuspc
             
             _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
 
-            // 🟢 THE FIX: Use absolute path mapping for the icon
+            // Absolute path mapping for the icon
             string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
             if (System.IO.File.Exists(iconPath))
             {
@@ -47,6 +46,7 @@ namespace Unbreakfocuspc
 
             CheckFirstRun();
             UpdateUI();
+            GenerateCalendar();
         }
 
         // ==========================================
@@ -148,7 +148,6 @@ namespace Unbreakfocuspc
             SubjectNameEntry.Text = "";
             SubjectGoalEntry.Text = "60";
             SubjectEditorOverlay.Visibility = Visibility.Visible;
-            FadeInOverlay.Begin(); // 🟢 MUCH CLEANER!
         }
 
         private void EditSubject_Click(object sender, RoutedEventArgs e)
@@ -163,7 +162,6 @@ namespace Unbreakfocuspc
                 SubjectNameEntry.Text = subject.Name;
                 SubjectGoalEntry.Text = subject.GoalMins.ToString();
                 SubjectEditorOverlay.Visibility = Visibility.Visible;
-                FadeInOverlay.Begin(); // 🟢 CLEANED
             }
         }
 
@@ -252,7 +250,6 @@ namespace Unbreakfocuspc
                                        $"Your streak is currently generating a +{bonusPercent}% bonus to all XP earned.";
             
             AnalyticsOverlay.Visibility = Visibility.Visible;
-            FadeInOverlay.Begin(); // 🟢 CLEANED
         }
 
         private void CloseAnalytics_Click(object sender, RoutedEventArgs e) => AnalyticsOverlay.Visibility = Visibility.Collapsed;

@@ -11,12 +11,13 @@ namespace Unbreakfocuspc
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Name { get; set; } = string.Empty;
+        
         [JsonPropertyName("goal_mins")]
         public int GoalMins { get; set; } = 60;
         
-        // 🟢 FIX: Give XAML a safe string to bind to
+        // 🟢 Fully formats the string here to bypass the WinUI 3 XAML bug
         [JsonIgnore]
-        public string GoalMinsText => GoalMins.ToString(); 
+        public string GoalMinsText => $"{GoalMins} MINS GOAL";
         
         [JsonPropertyName("time_done")]
         public int TimeDone { get; set; } = 0;
@@ -30,15 +31,15 @@ namespace Unbreakfocuspc
     {
         public int Day { get; set; }
         
-        // 🟢 FIX: Safe string binding
-        public string DayText => Day.ToString(); 
+        // Safe string binding for the day number
+        public string DayText => Day.ToString();
         
-        public string HexColor { get; set; } = "#1A1A1A"; 
+        public string HexColor { get; set; } = "#1A1A1A"; // Default Gray
         public bool IsToday { get; set; }
         
         public Microsoft.UI.Xaml.Thickness BorderSize => IsToday ? new Microsoft.UI.Xaml.Thickness(2) : new Microsoft.UI.Xaml.Thickness(0);
 
-        // 🟢 FIX: Translate the Hex string into a native WinUI 3 Brush
+        // Translates the Hex string into a native WinUI 3 Brush
         public Microsoft.UI.Xaml.Media.SolidColorBrush BackgroundBrush
         {
             get
@@ -59,7 +60,6 @@ namespace Unbreakfocuspc
         public string UserName { get; set; } = "Aspirant";
         public string Target { get; set; } = "Custom";
         
-        // 🟢 NEW: Stores the user's exam/mission date
         public DateTime? TargetDate { get; set; } 
         
         public int Xp { get; set; } = 0;
@@ -68,7 +68,6 @@ namespace Unbreakfocuspc
         public DateTime LastDate { get; set; } = DateTime.Now;
         public List<Subject> Subjects { get; set; } = new();
         
-        // 🟢 NEW: Stores daily focus history for the Calendar (Key: "yyyy-MM-dd", Value: Minutes)
         public Dictionary<string, int> History { get; set; } = new(); 
         
         public int DailyGlobalSeconds { get; set; } = 0;
@@ -179,7 +178,6 @@ namespace Unbreakfocuspc
             DateTime now = DateTime.Now;
             if (now.Date > CurrentUser.LastDate.Date)
             {
-                // 🟢 NEW: Save yesterday's minutes to the History dictionary before resetting
                 string lastKey = CurrentUser.LastDate.ToString("yyyy-MM-dd");
                 CurrentUser.History[lastKey] = CurrentUser.DailyGlobalSeconds / 60;
 
