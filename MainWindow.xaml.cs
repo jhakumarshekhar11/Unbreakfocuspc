@@ -24,23 +24,34 @@ namespace Unbreakfocuspc
         {
             try
             {
-                // 🟢 FIX 2: Load data BEFORE the UI initializes
+                // 1. Initialize collections FIRST to prevent XAML binding crashes
+                if (SubjectsData == null) SubjectsData = new ObservableCollection<Subject>();
+                if (CalendarDays == null) CalendarDays = new ObservableCollection<CalendarDay>();
+
+                // 2. Load data from disk
                 DataManager.Instance.LoadUser();
 
+                // 3. Initialize UI
                 this.InitializeComponent();
 
-                // Native Window Logic
+                // 4. Native Window Logic (Handle, ID, and Resize)
                 IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
                 var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
                 _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+                
                 _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
 
-                // Backdrop Guard
-                InitializeBackdrop();
+                // 5. Absolute path mapping for the icon
+                string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
+                if (System.IO.File.Exists(iconPath))
+                {
+                    _appWindow.SetIcon(iconPath);
+                }
 
-                // Setup Engine
+                // 6. Setup Engine & Timers
                 _engine = new FocusEngine();
                 _engine.OnDistractionDetected += Engine_DistractionDetected;
+                
                 _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
                 _timer.Tick += Timer_Tick;
 
@@ -50,7 +61,7 @@ namespace Unbreakfocuspc
             }
             catch (Exception ex)
             {
-                // If it still crashes, it will write a specific file to your desktop
+                // Recovery logging to Desktop if it crashes on boot
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 System.IO.File.WriteAllText(System.IO.Path.Combine(desktop, "UF_Init_Error.txt"), ex.ToString());
                 throw;

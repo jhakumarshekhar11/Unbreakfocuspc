@@ -5,6 +5,10 @@
     xmlns:local="using:Unbreakfocuspc"
     Title="Unbreakfocus">
 
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base" />
+    </Window.SystemBackdrop>
+
     <Grid RequestedTheme="Dark" Background="#E60A0A0A">
         <NavigationView x:Name="MainNav" SelectionChanged="MainNav_SelectionChanged" IsSettingsVisible="True" IsBackButtonVisible="Collapsed">
             
