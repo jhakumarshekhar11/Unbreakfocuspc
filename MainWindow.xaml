@@ -9,13 +9,13 @@
         <MicaBackdrop Kind="Base" />
     </Window.SystemBackdrop>
 
-    <Window.Resources>
-        <Storyboard x:Name="FadeInOverlay">
-            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.2"/>
-        </Storyboard>
-    </Window.Resources>
-
     <Grid RequestedTheme="Dark" Background="#E60A0A0A">
+        <Grid.Resources>
+            <Storyboard x:Name="FadeInOverlay">
+                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.2"/>
+            </Storyboard>
+        </Grid.Resources>
+
         <NavigationView x:Name="MainNav" SelectionChanged="MainNav_SelectionChanged" IsSettingsVisible="True" IsBackButtonVisible="Collapsed">
             
             <NavigationView.PaneHeader>
@@ -133,7 +133,7 @@
                     </StackPanel>
 
                     <StackPanel x:Name="ActiveEngineView" Visibility="Collapsed" Spacing="20" VerticalAlignment="Center">
-                        <TextBlock x:Name="EngineSubjectTxt" FontSize="18" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Center" LetterSpacing="200"/>
+                        <TextBlock x:Name="EngineSubjectTxt" FontSize="18" FontWeight="Bold" Foreground="#34D399" HorizontalAlignment="Center" CharacterSpacing="200"/>
                         <TextBlock x:Name="TimerDisplay" FontSize="100" FontWeight="Bold" FontFamily="Consolas" HorizontalAlignment="Center" Margin="0,20,0,0"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20" Margin="0,40,0,0">
                             <Button Content="PAUSE / RESUME" Background="#38BDF8" Foreground="Black" FontWeight="Bold" Width="150" Height="50" Click="StartTimer_Click"/>

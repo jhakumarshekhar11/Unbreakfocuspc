@@ -148,7 +148,7 @@ namespace Unbreakfocuspc
             SubjectNameEntry.Text = "";
             SubjectGoalEntry.Text = "60";
             SubjectEditorOverlay.Visibility = Visibility.Visible;
-            ((Microsoft.UI.Xaml.Media.Animation.Storyboard)Resources["FadeInOverlay"]).Begin();
+            FadeInOverlay.Begin(); // 🟢 MUCH CLEANER!
         }
 
         private void EditSubject_Click(object sender, RoutedEventArgs e)
@@ -163,7 +163,7 @@ namespace Unbreakfocuspc
                 SubjectNameEntry.Text = subject.Name;
                 SubjectGoalEntry.Text = subject.GoalMins.ToString();
                 SubjectEditorOverlay.Visibility = Visibility.Visible;
-                ((Microsoft.UI.Xaml.Media.Animation.Storyboard)Resources["FadeInOverlay"]).Begin();
+                FadeInOverlay.Begin(); // 🟢 CLEANED
             }
         }
 
@@ -252,7 +252,7 @@ namespace Unbreakfocuspc
                                        $"Your streak is currently generating a +{bonusPercent}% bonus to all XP earned.";
             
             AnalyticsOverlay.Visibility = Visibility.Visible;
-            ((Microsoft.UI.Xaml.Media.Animation.Storyboard)Resources["FadeInOverlay"]).Begin();
+            FadeInOverlay.Begin(); // 🟢 CLEANED
         }
 
         private void CloseAnalytics_Click(object sender, RoutedEventArgs e) => AnalyticsOverlay.Visibility = Visibility.Collapsed;
