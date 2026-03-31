@@ -28,29 +28,18 @@ namespace Unbreakfocuspc
     }
 
     public class CalendarDay
-    {
-        public int Day { get; set; }
-        public string DayText => Day.ToString();
-        public string HexColor { get; set; } = "#1A1A1A";
-        public bool IsToday { get; set; }
-    
-        // WinUI 3 is extremely picky about Thickness and Brushes in x:Bind
-        public Microsoft.UI.Xaml.Thickness BorderSize => IsToday 
-            ? new Microsoft.UI.Xaml.Thickness(2) 
-            : new Microsoft.UI.Xaml.Thickness(0);
-    
-        public Microsoft.UI.Xaml.Media.SolidColorBrush BackgroundBrush
-        {
-            get
-            {
-                // Manual color mapping to avoid complex hex parsing during UI draw
-                if (HexColor == "#FBBF24") return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 251, 191, 36)); // Amber
-                if (HexColor == "#38BDF8") return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 56, 189, 248)); // Sky
-                if (HexColor == "#EF4444") return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 239, 68, 68));  // Red
-                return new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 26, 26)); // Default Gray
-            }
-        }
-    }
+{
+    public int Day { get; set; }
+    public string DayText => Day.ToString();
+    public string HexColor { get; set; } = "#1A1A1A";
+    public bool IsToday { get; set; }
+
+    // 🟢 FIX: Use simple types. WinUI 3 XAML converts strings to Brushes/Thickness automatically.
+    public string BorderSize => IsToday ? "2" : "0";
+
+    // 🟢 FIX: Return the Hex string directly. XAML will convert this to a Brush.
+    public string BackgroundColor => HexColor;
+}
 
     public class UserData
     {

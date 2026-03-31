@@ -70,8 +70,12 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="local:CalendarDay">
-                                        <Border Width="40" Height="40" Margin="5" CornerRadius="8" Background="{x:Bind BackgroundBrush}" BorderBrush="White" BorderThickness="{x:Bind BorderSize}">
-                                            <TextBlock Text="{x:Bind DayText}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
+                                        <Border Width="40" Height="40" Margin="5" CornerRadius="8" 
+                                                Background="{x:Bind BackgroundColor}" 
+                                                BorderBrush="White" 
+                                                BorderThickness="{x:Bind BorderSize}">
+                                            <TextBlock Text="{x:Bind DayText}" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
