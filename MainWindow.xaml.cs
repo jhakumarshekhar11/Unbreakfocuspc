@@ -14,33 +14,28 @@ namespace Unbreakfocuspc
         private int _sessionSeconds = 0;
         private Microsoft.UI.Windowing.AppWindow _appWindow;
 
-        public ObservableCollection<Subject> SubjectsData { get; set; } = new();
-        public ObservableCollection<CalendarDay> CalendarDays { get; set; } = new();
+        // 🟢 FIX 1: Initialize collections here so they are NEVER null during XAML parse
+        public ObservableCollection<Subject> SubjectsData { get; set; } = new ObservableCollection<Subject>();
+        public ObservableCollection<CalendarDay> CalendarDays { get; set; } = new ObservableCollection<CalendarDay>();
 
         private string _editingSubjectId = null;
 
         public MainWindow()
         {
+            // 🟢 FIX 2: Ensure data is loaded BEFORE the UI starts binding
+            DataManager.Instance.LoadUser();
+
             this.InitializeComponent();
             
+            // Native Window Logic...
             IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-            
             _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
 
-            // Absolute path mapping for the icon
-            string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
-            if (System.IO.File.Exists(iconPath))
-            {
-                _appWindow.SetIcon(iconPath);
-            }
-
-            // Initialize App Data & Watchdog Engine
-            DataManager.Instance.LoadUser();
+            // Setup Engine
             _engine = new FocusEngine();
             _engine.OnDistractionDetected += Engine_DistractionDetected;
-
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _timer.Tick += Timer_Tick;
 

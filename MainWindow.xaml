@@ -25,12 +25,8 @@
             </NavigationView.PaneHeader>
 
             <NavigationView.MenuItems>
-                <NavigationViewItem Tag="Hub" Content="Hub">
-                    <NavigationViewItem.Icon><SymbolIcon Symbol="Home"/></NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Tag="Focus" Content="Focus Engine">
-                    <NavigationViewItem.Icon><SymbolIcon Symbol="Clock"/></NavigationViewItem.Icon>
-                </NavigationViewItem>
+                <NavigationViewItem Tag="Hub" Content="Hub" Icon="Home"/>
+                <NavigationViewItem Tag="Focus" Content="Focus Engine" Icon="Clock"/>
             </NavigationView.MenuItems>
 
             <Grid Padding="20">
@@ -67,7 +63,7 @@
 
                         <TextBlock Text="THIS MONTH'S HISTORY" FontSize="14" FontWeight="Bold" Foreground="Gray" Margin="0,10,0,0"/>
                         <Border Background="#161616" CornerRadius="12" Padding="15" BorderBrush="#262626" BorderThickness="1">
-                            <ItemsControl x:Name="CalendarGrid">
+                            <ItemsControl x:Name="CalendarGrid" ItemsSource="{x:Bind CalendarDays, Mode=OneWay}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <VariableSizedWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="7"/>
@@ -75,8 +71,12 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="local:CalendarDay">
-                                        <Border Width="40" Height="40" Margin="5" CornerRadius="8" Background="{x:Bind BackgroundBrush}" BorderBrush="White" BorderThickness="{x:Bind BorderSize}">
-                                            <TextBlock Text="{x:Bind DayText}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
+                                        <Border Width="40" Height="40" Margin="5" CornerRadius="8" 
+                                                Background="{x:Bind BackgroundBrush}" 
+                                                BorderBrush="White" 
+                                                BorderThickness="{x:Bind BorderSize}">
+                                            <TextBlock Text="{x:Bind DayText}" HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
