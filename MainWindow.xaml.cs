@@ -355,6 +355,19 @@ namespace Unbreakfocuspc
         }
 
         // ==========================================
+        // SETTINGS LOGIC
+        // ==========================================
+
+        private void StrictMode_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (StrictModeToggle != null && StrictModeToggle.IsOn)
+            {
+                DataManager.Instance.CurrentUser.IsStrictMode = true;
+                DataManager.Instance.SaveUser();
+            }
+        }
+        
+        // ==========================================
         // BLOCKER LOGIC
         // ==========================================
 
