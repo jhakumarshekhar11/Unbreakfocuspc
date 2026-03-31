@@ -34,13 +34,59 @@ namespace Unbreakfocuspc
             UpdateUI();
         }
 
+
+
         private void MainNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            if (args.IsSettingsSelected) { /* Handle settings */ return; }
-            
+            if (args.IsSettingsSelected)
+            {
+                HubView.Visibility = Visibility.Collapsed;
+                FocusView.Visibility = Visibility.Collapsed;
+                SettingsView.Visibility = Visibility.Visible;
+                return;
+            }
+        
             var item = args.SelectedItem as NavigationViewItem;
-            HubView.Visibility = item.Tag.ToString() == "Hub" ? Visibility.Visible : Visibility.Collapsed;
-            FocusView.Visibility = item.Tag.ToString() == "Focus" ? Visibility.Visible : Visibility.Collapsed;
+            string tag = item?.Tag?.ToString();
+        
+            HubView.Visibility = tag == "Hub" ? Visibility.Visible : Visibility.Collapsed;
+            FocusView.Visibility = tag == "Focus" ? Visibility.Visible : Visibility.Collapsed;
+            SettingsView.Visibility = Visibility.Collapsed;
+        }
+        
+        private void InitializeProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(NewUserNameEntry.Text)) return;
+        
+            var user = DataManager.Instance.CurrentUser;
+            user.UserName = NewUserNameEntry.Text;
+            user.Target = (TargetPicker.SelectedItem as ComboBoxItem)?.Content.ToString();
+            
+            DataManager.Instance.SaveUser();
+            OnboardingOverlay.Visibility = Visibility.Collapsed;
+            UpdateUI();
+        }
+        
+        private void StrictMode_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (StrictModeToggle.IsOn)
+            {
+                DataManager.Instance.CurrentUser.IsStrictMode = true;
+                DataManager.Instance.SaveUser();
+            }
+        }
+        
+        private async void ShowCredits_Click(object sender, RoutedEventArgs e)
+        {
+            ContentDialog creditsDialog = new ContentDialog
+            {
+                Title = "CONSTRUCTORS",
+                Content = "DEVELOPER: SHEKHAR KUMAR JHA\n\nBuilt for Academic Dominance.\nVersion 2.5.0 (Windows Native)",
+                CloseButtonText = "RESUME MISSION",
+                XamlRoot = this.Content.XamlRoot
+            };
+        
+            await creditsDialog.ShowAsync();
         }
 
         private void UpdateUI()

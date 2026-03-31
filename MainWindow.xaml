@@ -29,6 +29,7 @@
             </NavigationView.MenuItems>
 
             <Grid Padding="20">
+                
                 <StackPanel x:Name="HubView" Visibility="Visible" Spacing="20">
                     <TextBlock Text="MISSION LOGBOOK" FontSize="24" FontWeight="Bold" Foreground="#38BDF8"/>
                     
@@ -64,14 +65,44 @@
                         <Button Content="ABORT" Background="#EF4444" Foreground="White" FontWeight="Bold" Width="150" Height="50" Click="AbortTimer_Click"/>
                     </StackPanel>
                 </StackPanel>
+
+                <StackPanel x:Name="SettingsView" Visibility="Collapsed" Spacing="20" MaxWidth="600" HorizontalAlignment="Left">
+                    <TextBlock Text="SYSTEM PREFERENCES" FontSize="24" FontWeight="Bold" Foreground="#38BDF8"/>
+                    
+                    <Border Background="#161616" CornerRadius="12" Padding="20" BorderBrush="#262626" BorderThickness="1">
+                        <StackPanel Spacing="15">
+                            <ToggleSwitch x:Name="StrictModeToggle" Header="Strict Mode" Description="Lock focus engine until midnight. Sessions cannot be aborted." Toggled="StrictMode_Toggled" />
+                            <Button Content="VIEW CONSTRUCTORS (CREDITS)" Click="ShowCredits_Click" Background="#262626" Foreground="White" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
                 
-                <Grid x:Name="OverlayBlocker" Visibility="Collapsed" Background="#E6000000">
+                <Grid x:Name="OnboardingOverlay" Visibility="Collapsed" Canvas.ZIndex="50" Background="#E60A0A0A" Margin="-20">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20" Width="400">
+                        <Image Source="Assets/logo.png" Width="80" Height="80"/>
+                        <TextBlock Text="ESTABLISH IDENTITY" FontSize="28" FontWeight="Black" HorizontalAlignment="Center" Foreground="White"/>
+                        
+                        <TextBox x:Name="NewUserNameEntry" Header="Codename / Name" PlaceholderText="Enter your name..." Foreground="White"/>
+                        <ComboBox x:Name="TargetPicker" Header="Mission Target" HorizontalAlignment="Stretch" SelectedIndex="0">
+                            <ComboBoxItem Content="Class 10th ICSE"/>
+                            <ComboBoxItem Content="Class 12th CBSE"/>
+                            <ComboBoxItem Content="JEE / NEET"/>
+                            <ComboBoxItem Content="Custom"/>
+                        </ComboBox>
+                        
+                        <Button Content="INITIALIZE SHIELD" HorizontalAlignment="Stretch" Height="50" Margin="0,20,0,0"
+                                Background="#38BDF8" Foreground="Black" FontWeight="Bold" Click="InitializeProfile_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="OverlayBlocker" Visibility="Collapsed" Canvas.ZIndex="100" Background="#E6000000" Margin="-20">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
                         <TextBlock Text="FOCUS BREACHED" Foreground="#EF4444" FontSize="48" FontWeight="Bold" HorizontalAlignment="Center"/>
                         <TextBlock x:Name="DistractedAppTxt" Foreground="White" FontSize="20" HorizontalAlignment="Center"/>
                         <Button Content="RETURN TO FOCUS" Background="#EF4444" Foreground="White" HorizontalAlignment="Center" Margin="0,30,0,0" Click="DismissBlocker_Click"/>
                     </StackPanel>
                 </Grid>
+
             </Grid>
         </NavigationView>
     </Grid>
