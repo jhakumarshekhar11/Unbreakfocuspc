@@ -11,7 +11,7 @@
             <NavigationView.PaneHeader>
                 <Grid Padding="12,10,12,10">
                     <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Left">
-                        <Image Source="Assets/logo.png" Width="28" Height="28" Stretch="Uniform"/>
+                        <Image Source="ms-appx:///Assets/logo.png" Width="28" Height="28" Stretch="Uniform"/>
                         <TextBlock Text="UNBREAKFOCUS" VerticalAlignment="Center" FontWeight="Black" FontSize="14" CharacterSpacing="200" Foreground="#38BDF8"/>
                     </StackPanel>
                     
@@ -174,7 +174,7 @@
 
                 <Grid x:Name="OnboardingOverlay" Visibility="Collapsed" Canvas.ZIndex="50" Background="#E60A0A0A" Margin="-20">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20" Width="400">
-                        <Image Source="Assets/logo.png" Width="80" Height="80"/>
+                        <Image Source="ms-appx:///Assets/logo.png" Width="80" Height="80"/>
                         <TextBlock Text="ESTABLISH IDENTITY" FontSize="28" FontWeight="Black" HorizontalAlignment="Center" Foreground="White"/>
                         <TextBox x:Name="NewUserNameEntry" Header="Codename / Name" Foreground="White"/>
                         <ComboBox x:Name="TargetPicker" Header="Mission Target" HorizontalAlignment="Stretch" SelectedIndex="0">
