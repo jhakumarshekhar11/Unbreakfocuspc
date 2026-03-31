@@ -21,16 +21,32 @@ namespace Unbreakfocuspc
         public double XpBuffer { get; set; } = 0.0;
     }
 
+    // 🟢 NEW: Helper class to bind the Calendar UI
+    public class CalendarDay
+    {
+        public int Day { get; set; }
+        public string HexColor { get; set; } = "#1A1A1A"; // Default Gray
+        public bool IsToday { get; set; }
+    }
+
     public class UserData
     {
         public string UniqueId { get; set; } = "@UF-USER";
         public string UserName { get; set; } = "Aspirant";
         public string Target { get; set; } = "Custom";
+        
+        // 🟢 NEW: Stores the user's exam/mission date
+        public DateTime? TargetDate { get; set; } 
+        
         public int Xp { get; set; } = 0;
         public int LifetimeXp { get; set; } = 0;
         public int Streak { get; set; } = 0;
         public DateTime LastDate { get; set; } = DateTime.Now;
         public List<Subject> Subjects { get; set; } = new();
+        
+        // 🟢 NEW: Stores daily focus history for the Calendar (Key: "yyyy-MM-dd", Value: Minutes)
+        public Dictionary<string, int> History { get; set; } = new(); 
+        
         public int DailyGlobalSeconds { get; set; } = 0;
         public bool IsStrictMode { get; set; } = false;
 
@@ -139,6 +155,10 @@ namespace Unbreakfocuspc
             DateTime now = DateTime.Now;
             if (now.Date > CurrentUser.LastDate.Date)
             {
+                // 🟢 NEW: Save yesterday's minutes to the History dictionary before resetting
+                string lastKey = CurrentUser.LastDate.ToString("yyyy-MM-dd");
+                CurrentUser.History[lastKey] = CurrentUser.DailyGlobalSeconds / 60;
+
                 int daysDiff = (now.Date - CurrentUser.LastDate.Date).Days;
                 int streakGoalMins = CurrentUser.StreakThresholdSeconds / 60;
                 int totalMinsYesterday = CurrentUser.DailyGlobalSeconds / 60;
