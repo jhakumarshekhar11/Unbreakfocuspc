@@ -14,7 +14,6 @@ namespace Unbreakfocuspc
         private int _sessionSeconds = 0;
         private Microsoft.UI.Windowing.AppWindow _appWindow;
 
-        // 🟢 FIX 1: Initialize at the property level to guarantee existence
         public ObservableCollection<Subject> SubjectsData { get; set; } = new ObservableCollection<Subject>();
         public ObservableCollection<CalendarDay> CalendarDays { get; set; } = new ObservableCollection<CalendarDay>();
 
@@ -24,34 +23,22 @@ namespace Unbreakfocuspc
         {
             try
             {
-                // 1. Initialize collections FIRST to prevent XAML binding crashes
-                if (SubjectsData == null) SubjectsData = new ObservableCollection<Subject>();
-                if (CalendarDays == null) CalendarDays = new ObservableCollection<CalendarDay>();
-
-                // 2. Load data from disk
+                // Ensure data is loaded BEFORE UI initialization to prevent binding crashes
                 DataManager.Instance.LoadUser();
 
-                // 3. Initialize UI
                 this.InitializeComponent();
 
-                // 4. Native Window Logic (Handle, ID, and Resize)
+                // Native Window Handle and Resizing
                 IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
                 var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
                 _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-                
                 _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
 
-                // 5. Absolute path mapping for the icon
-                string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
-                if (System.IO.File.Exists(iconPath))
-                {
-                    _appWindow.SetIcon(iconPath);
-                }
+                // 🟢 Backdrop is now handled automatically via XAML property
 
-                // 6. Setup Engine & Timers
+                // Setup Engine and Timer
                 _engine = new FocusEngine();
                 _engine.OnDistractionDetected += Engine_DistractionDetected;
-                
                 _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
                 _timer.Tick += Timer_Tick;
 
@@ -61,22 +48,10 @@ namespace Unbreakfocuspc
             }
             catch (Exception ex)
             {
-                // Recovery logging to Desktop if it crashes on boot
+                // Emergency log to Desktop if boot fails
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 System.IO.File.WriteAllText(System.IO.Path.Combine(desktop, "UF_Init_Error.txt"), ex.ToString());
                 throw;
-            }
-        }
-
-        private void InitializeBackdrop()
-        {
-            if (Microsoft.UI.Xaml.Media.MicaBackdrop.IsSupported())
-            {
-                this.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
-            }
-            else if (Microsoft.UI.Xaml.Media.DesktopAcrylicBackdrop.IsSupported())
-            {
-                this.SystemBackdrop = new Microsoft.UI.Xaml.Media.DesktopAcrylicBackdrop();
             }
         }
 
