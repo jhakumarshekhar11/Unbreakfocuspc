@@ -25,8 +25,16 @@
             </NavigationView.PaneHeader>
 
             <NavigationView.MenuItems>
-                <NavigationViewItem Tag="Hub" Content="Hub" Icon="Home"/>
-                <NavigationViewItem Tag="Focus" Content="Focus Engine" Icon="Clock"/>
+                <NavigationViewItem Tag="Hub" Content="Hub">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Home"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Tag="Focus" Content="Focus Engine">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Clock"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <Grid Padding="20">
