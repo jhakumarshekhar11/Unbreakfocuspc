@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
-using System.Linq;
 
 namespace Unbreakfocuspc
 {
@@ -11,30 +10,67 @@ namespace Unbreakfocuspc
         private FocusEngine _engine;
         private Subject _currentSubject;
         private int _sessionSeconds = 0;
+        private Microsoft.UI.Windowing.AppWindow _appWindow;
 
         public MainWindow()
         {
             this.InitializeComponent();
             
-            // Set App Icon
+            // Setup Native Window (Size & Icon)
             IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.GetWindowIdFromWindowHandle(hWnd);
-            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-            appWindow.SetIcon("Assets/logo.ico");
+            _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            
+            _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
+            _appWindow.SetIcon("Assets/logo.ico");
 
-            // Load Local Data
+            // Initialize App Data & Watchdog Engine
             DataManager.Instance.LoadUser();
             _engine = new FocusEngine();
             _engine.OnDistractionDetected += Engine_DistractionDetected;
 
-            // Timer Setup
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _timer.Tick += Timer_Tick;
 
+            CheckFirstRun();
             UpdateUI();
         }
 
+        private void FullScreen_Click(object sender, RoutedEventArgs e)
+        {
+            if (_appWindow.Presenter.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen)
+            {
+                _appWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
+                FullScreenBtn.Content = new SymbolIcon(Symbol.FullScreen) { Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White) };
+            }
+            else
+            {
+                _appWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
+                FullScreenBtn.Content = new SymbolIcon(Symbol.BackToWindow) { Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White) };
+            }
+        }
 
+        private void CheckFirstRun()
+        {
+            var user = DataManager.Instance.CurrentUser;
+            if (string.IsNullOrEmpty(user.UserName) || user.UserName == "Aspirant")
+            {
+                OnboardingOverlay.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void InitializeProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(NewUserNameEntry.Text)) return;
+            
+            var user = DataManager.Instance.CurrentUser;
+            user.UserName = NewUserNameEntry.Text;
+            user.Target = (TargetPicker.SelectedItem as ComboBoxItem)?.Content.ToString();
+            
+            DataManager.Instance.SaveUser();
+            OnboardingOverlay.Visibility = Visibility.Collapsed;
+            UpdateUI();
+        }
 
         private void MainNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
@@ -45,48 +81,13 @@ namespace Unbreakfocuspc
                 SettingsView.Visibility = Visibility.Visible;
                 return;
             }
-        
+
             var item = args.SelectedItem as NavigationViewItem;
             string tag = item?.Tag?.ToString();
-        
+
             HubView.Visibility = tag == "Hub" ? Visibility.Visible : Visibility.Collapsed;
             FocusView.Visibility = tag == "Focus" ? Visibility.Visible : Visibility.Collapsed;
             SettingsView.Visibility = Visibility.Collapsed;
-        }
-        
-        private void InitializeProfile_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(NewUserNameEntry.Text)) return;
-        
-            var user = DataManager.Instance.CurrentUser;
-            user.UserName = NewUserNameEntry.Text;
-            user.Target = (TargetPicker.SelectedItem as ComboBoxItem)?.Content.ToString();
-            
-            DataManager.Instance.SaveUser();
-            OnboardingOverlay.Visibility = Visibility.Collapsed;
-            UpdateUI();
-        }
-        
-        private void StrictMode_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (StrictModeToggle.IsOn)
-            {
-                DataManager.Instance.CurrentUser.IsStrictMode = true;
-                DataManager.Instance.SaveUser();
-            }
-        }
-        
-        private async void ShowCredits_Click(object sender, RoutedEventArgs e)
-        {
-            ContentDialog creditsDialog = new ContentDialog
-            {
-                Title = "CONSTRUCTORS",
-                Content = "DEVELOPER: SHEKHAR KUMAR JHA\n\nBuilt for Academic Dominance.\nVersion 2.5.0 (Windows Native)",
-                CloseButtonText = "RESUME MISSION",
-                XamlRoot = this.Content.XamlRoot
-            };
-        
-            await creditsDialog.ShowAsync();
         }
 
         private void UpdateUI()
@@ -102,6 +103,7 @@ namespace Unbreakfocuspc
 
             int totalMins = user.DailyGlobalSeconds / 60;
             TodayFocusTxt.Text = $"{totalMins} MINS";
+            StrictModeToggle.IsOn = user.IsStrictMode;
 
             UpdateTimerText();
         }
@@ -136,7 +138,7 @@ namespace Unbreakfocuspc
             user.DailyGlobalSeconds++;
             _currentSubject.TimeDone++;
 
-            // Replicate Flutter XP Math
+            // Flow & Streak XP Mechanics
             double baseXp = 0.2 / 60.0;
             double streakBonus = 1.0 + (Math.Min(user.Streak, 25) * 0.02);
             _currentSubject.XpBuffer += (baseXp * streakBonus);
@@ -157,13 +159,45 @@ namespace Unbreakfocuspc
         {
             _timer.Stop();
             _engine.StopShield();
+
+            var user = DataManager.Instance.CurrentUser;
+            
+            // Evaluate Strict Mode Punishment
+            if (user.IsStrictMode)
+            {
+                int penalty = Math.Min(1000, (int)(user.Xp * 0.25));
+                user.Xp -= penalty;
+                user.Streak = 0;
+            }
+
+            _sessionSeconds = 0;
             DataManager.Instance.SaveUser();
             UpdateUI();
         }
 
+        private void StrictMode_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (StrictModeToggle.IsOn)
+            {
+                DataManager.Instance.CurrentUser.IsStrictMode = true;
+                DataManager.Instance.SaveUser();
+            }
+        }
+
+        private async void ShowCredits_Click(object sender, RoutedEventArgs e)
+        {
+            ContentDialog creditsDialog = new ContentDialog
+            {
+                Title = "CONSTRUCTORS",
+                Content = "DEVELOPER: SHEKHAR KUMAR JHA\n\nBuilt for Academic Dominance.\nVersion 2.5.0 (Windows Native)",
+                CloseButtonText = "RESUME MISSION",
+                XamlRoot = this.Content.XamlRoot
+            };
+            await creditsDialog.ShowAsync();
+        }
+
         private void Engine_DistractionDetected(object sender, string app)
         {
-            // Sync with UI thread
             DispatcherQueue.TryEnqueue(() => {
                 DistractedAppTxt.Text = $"DETECTION: {app}";
                 OverlayBlocker.Visibility = Visibility.Visible;
