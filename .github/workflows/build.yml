@@ -8,34 +8,34 @@ on:
 
 jobs:
   build:
+    name: Build Windows App
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.1
-
-    - name: Restore NuGet Packages
+    - name: Restore Dependencies
       run: dotnet restore Unbreakfocuspc.csproj
 
-    - name: Publish App (Self-Contained)
+    - name: Publish Standalone App
+      # 🟢 FIX: Changed -r win10-x64 to -r win-x64
       run: >
-        dotnet publish Unbreakfocuspc.csproj
-        -f net8.0-windows10.0.19041.0
-        -c Release
-        -r win10-x64
-        --self-contained true
-        -p:PublishSingleFile=true
-        -p:IncludeNativeLibrariesForSelfExtract=true
+        dotnet publish Unbreakfocuspc.csproj 
+        -f net8.0-windows10.0.19041.0 
+        -c Release 
+        -r win-x64 
+        --self-contained true 
+        -p:PublishReadyToRun=true
 
-    - name: Upload Build Artifact
+    - name: Upload Release Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Unbreakfocus-Desktop-Release
-        path: bin/Release/net8.0-windows10.0.19041.0/win10-x64/publish/
+        name: Unbreakfocus-Windows-x64
+        # 🟢 FIX: Path updated to reflect win-x64 folder
+        path: bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\
