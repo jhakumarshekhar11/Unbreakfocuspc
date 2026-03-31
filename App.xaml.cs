@@ -10,23 +10,17 @@ namespace Unbreakfocuspc
 
         public App()
         {
-            this.InitializeComponent();
-            
-            // 🟢 THE FIX: Catch any fatal UI crashes and save them to a log file
+            // 🟢 FIX: Attach the black box BEFORE the UI initializes
             this.UnhandledException += App_UnhandledException;
+            this.InitializeComponent();
         }
 
         private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
         {
-            e.Handled = true; // Prevent immediate hard-close
-            
-            // Write the error directly to your Desktop so you can see it
+            e.Handled = true; 
             string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string logPath = Path.Combine(desktop, "Unbreakfocus_CrashLog.txt");
-            
             File.WriteAllText(logPath, "FATAL CRASH: \n" + e.Exception.ToString());
-            
-            // Exit safely after logging
             Environment.Exit(1);
         }
 

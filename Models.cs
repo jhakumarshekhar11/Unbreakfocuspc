@@ -13,6 +13,11 @@ namespace Unbreakfocuspc
         public string Name { get; set; } = string.Empty;
         [JsonPropertyName("goal_mins")]
         public int GoalMins { get; set; } = 60;
+        
+        // 🟢 FIX: Give XAML a safe string to bind to
+        [JsonIgnore]
+        public string GoalMinsText => GoalMins.ToString(); 
+        
         [JsonPropertyName("time_done")]
         public int TimeDone { get; set; } = 0;
         [JsonPropertyName("color_value")]
@@ -21,16 +26,31 @@ namespace Unbreakfocuspc
         public double XpBuffer { get; set; } = 0.0;
     }
 
-    // 🟢 NEW: Helper class to bind the Calendar UI
-    // 🟢 Helper class to bind the Calendar UI
     public class CalendarDay
     {
         public int Day { get; set; }
-        public string HexColor { get; set; } = "#1A1A1A"; // Default Gray
+        
+        // 🟢 FIX: Safe string binding
+        public string DayText => Day.ToString(); 
+        
+        public string HexColor { get; set; } = "#1A1A1A"; 
         public bool IsToday { get; set; }
         
-        // 🟢 THE FIX: Return a strongly-typed Thickness object for WinUI 3
         public Microsoft.UI.Xaml.Thickness BorderSize => IsToday ? new Microsoft.UI.Xaml.Thickness(2) : new Microsoft.UI.Xaml.Thickness(0);
+
+        // 🟢 FIX: Translate the Hex string into a native WinUI 3 Brush
+        public Microsoft.UI.Xaml.Media.SolidColorBrush BackgroundBrush
+        {
+            get
+            {
+                byte r = 26, g = 26, b = 26; // Default Gray #1A1A1A
+                if (HexColor == "#FBBF24") { r = 251; g = 191; b = 36; }      // Amber
+                else if (HexColor == "#38BDF8") { r = 56; g = 189; b = 248; } // Sky
+                else if (HexColor == "#EF4444") { r = 239; g = 68; b = 68; }  // Red
+                
+                return new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, r, g, b));
+            }
+        }
     }
 
     public class UserData
