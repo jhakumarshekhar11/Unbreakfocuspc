@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace UnbreakfocusPC {
     public class Subject {
         public string Id { get; set; } = Guid.NewGuid().ToString();
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int GoalMins { get; set; }
         public double TimeDone { get; set; }
         public string Color { get; set; } = "#38BDF8";
@@ -17,9 +17,9 @@ namespace UnbreakfocusPC {
 
     [FirestoreData]
     public class UserData {
-        [FirestoreProperty] public string UniqueId { get; set; }
-        [FirestoreProperty] public string Pin { get; set; }
-        [FirestoreProperty] public string UserName { get; set; }
+        [FirestoreProperty] public string UniqueId { get; set; } = string.Empty;
+        [FirestoreProperty] public string Pin { get; set; } = string.Empty;
+        [FirestoreProperty] public string UserName { get; set; } = string.Empty;
         [FirestoreProperty] public double XP { get; set; }
         [FirestoreProperty] public int Streak { get; set; }
         public List<Subject> Subjects { get; set; } = new();
@@ -34,14 +34,22 @@ namespace UnbreakfocusPC {
 
         public static string GetActiveProcessName() {
             IntPtr hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return string.Empty;
+            
             GetWindowThreadProcessId(hwnd, out uint pid);
-            return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName.ToLower();
+            
+            try {
+                return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName.ToLower();
+            } catch {
+                // Catch unauthorized access or processes exiting before ID resolution
+                return string.Empty;
+            }
         }
     }
 
     public static class Persistence {
         private static string Path => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ubf_data.json");
         public static void Save(UserData data) => File.WriteAllText(Path, JsonSerializer.Serialize(data));
-        public static UserData Load() => File.Exists(Path) ? JsonSerializer.Deserialize<UserData>(File.ReadAllText(Path)) : null;
+        public static UserData? Load() => File.Exists(Path) ? JsonSerializer.Deserialize<UserData>(File.ReadAllText(Path)) : null;
     }
 }

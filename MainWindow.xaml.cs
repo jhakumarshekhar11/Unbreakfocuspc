@@ -31,7 +31,7 @@ namespace UnbreakfocusPC {
             return newUser;
         }
 
-        private void Timer_Tick(object sender, EventArgs e) {
+        private void Timer_Tick(object? sender, EventArgs e) {
             if (_secondsRemaining > 0) {
                 _secondsRemaining--;
                 _user.XP += 0.0033; // ~0.2 XP per minute
@@ -41,7 +41,7 @@ namespace UnbreakfocusPC {
             }
         }
 
-        private void Watchdog_Tick(object sender, EventArgs e) {
+        private void Watchdog_Tick(object? sender, EventArgs e) {
             string active = Watchdog.GetActiveProcessName();
             if (_distractions.Contains(active)) {
                 BlockerOverlay.Visibility = Visibility.Visible;
@@ -75,24 +75,25 @@ namespace UnbreakfocusPC {
             SubjectList.ItemsSource = _user.Subjects.ToList();
         }
 
-        private void StartFocus_Click(object sender, RoutedEventArgs e) {
-            var sub = (Subject)((FrameworkElement)sender).Tag;
-            _secondsRemaining = sub.GoalMins * 60;
-            EngineView.Visibility = Visibility.Visible;
-            _timer.Start();
-            _watchdogTimer.Start();
+        private void StartFocus_Click(object? sender, RoutedEventArgs e) {
+            if (sender is FrameworkElement element && element.Tag is Subject sub) {
+                _secondsRemaining = sub.GoalMins * 60;
+                EngineView.Visibility = Visibility.Visible;
+                _timer.Start();
+                _watchdogTimer.Start();
+            }
         }
 
-        private void Nav_Hub(object sender, RoutedEventArgs e) => ShowView(HubView);
-        private void Nav_Focus(object sender, RoutedEventArgs e) => ShowView(FocusView);
-        private void Nav_Store(object sender, RoutedEventArgs e) => ShowView(StoreView);
+        private void Nav_Hub(object? sender, RoutedEventArgs e) => ShowView(HubView);
+        private void Nav_Focus(object? sender, RoutedEventArgs e) => ShowView(FocusView);
+        private void Nav_Store(object? sender, RoutedEventArgs e) => ShowView(StoreView);
 
         private void ShowView(UIElement view) {
             HubView.Visibility = FocusView.Visibility = StoreView.Visibility = Visibility.Collapsed;
             view.Visibility = Visibility.Visible;
         }
 
-        private void BuyFreeze_Click(object sender, RoutedEventArgs e) {
+        private void BuyFreeze_Click(object? sender, RoutedEventArgs e) {
             if (_user.XP >= 1500) {
                 _user.XP -= 1500;
                 _user.Inventory.Add("STREAK_FREEZE");
