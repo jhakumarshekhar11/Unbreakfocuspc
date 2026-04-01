@@ -1,48 +1,132 @@
-<Window x:Class="UnbreakfocusPC.MainWindow"
+<ui:FluentWindow x:Class="UnbreakfocusPC.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Unbreakfocus PC" Height="700" Width="1000" Background="#0A0A0A" 
-        WindowStyle="None" AllowsTransparency="True"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Unbreakfocus PC" Height="750" Width="1100" 
+        WindowBackdropType="Mica" Background="Transparent"
+        ExtendsContentIntoTitleBar="True"
         Icon="Assets/logo.ico">
     <Grid>
-        <Border Background="#0A0A0A" Opacity="0.9" CornerRadius="15"/>
-        
-        <Grid x:Name="MainContainer">
-            <StackPanel Width="80" HorizontalAlignment="Left" Background="#111111">
-                <Button Content="Hub" Click="Nav_Hub" Margin="5,50,5,10" Background="Transparent" Foreground="#38BDF8" BorderBrush="Transparent"/>
-                <Button Content="Focus" Click="Nav_Focus" Margin="5,10" Background="Transparent" Foreground="#34D399" BorderBrush="Transparent"/>
-                <Button Content="Store" Click="Nav_Store" Margin="5,10" Background="Transparent" Foreground="#FBBF24" BorderBrush="Transparent"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="Unbreakfocus PC" Icon="pack://application:,,,/Assets/logo.png" Margin="0,0,0,10"/>
+
+        <Grid x:Name="AuthView" Grid.Row="1" Visibility="Visible" Background="#D80A0A0A" Panel.ZIndex="100">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="350">
+                <TextBlock Text="SYSTEM INITIALIZATION" FontSize="24" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,0,0,30"/>
+                <Border Background="#1A1A1A" Padding="20" CornerRadius="8" Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="NEW OPERATOR" FontSize="16" Foreground="#34D399" Margin="0,0,0,10"/>
+                        <TextBox x:Name="TxtNewPin" MaxLength="4" Foreground="White" Background="#222" Text="ENTER 4-DIGIT PIN" GotFocus="ClearPlaceholder" Margin="0,0,0,10" Padding="5"/>
+                        <Button Content="GENERATE PROFILE" Click="CreateProfile_Click" Background="#38BDF8" Foreground="Black" Width="200" HorizontalAlignment="Center" Padding="10,5"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="#1A1A1A" Padding="20" CornerRadius="8">
+                    <StackPanel>
+                        <TextBlock Text="RESTORE FROM CLOUD" FontSize="16" Foreground="#FBBF24" Margin="0,0,0,10"/>
+                        <TextBox x:Name="TxtRestoreId" Foreground="White" Background="#222" Text="@UF-" Margin="0,0,0,10" Padding="5"/>
+                        <TextBox x:Name="TxtRestorePin" MaxLength="4" Foreground="White" Background="#222" Text="PIN" GotFocus="ClearPlaceholder" Margin="0,0,0,10" Padding="5"/>
+                        <Button Content="SYNC &amp; RESTORE" Click="RestoreProfile_Click" Background="#FBBF24" Foreground="Black" Width="200" HorizontalAlignment="Center" Padding="10,5"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock x:Name="TxtAuthError" Foreground="#EF4444" HorizontalAlignment="Center" Margin="0,20,0,0" Visibility="Collapsed"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid x:Name="MainContainer" Grid.Row="1" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Background="#80000000">
+                <ui:Button Click="Nav_Hub" Margin="5,20,5,10" Appearance="Transparent" Width="70" Height="60">
+                    <StackPanel>
+                        <ui:SymbolIcon Symbol="Home24" Foreground="#38BDF8" FontSize="24" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Hub" Foreground="#38BDF8" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button Click="Nav_Focus" Margin="5,10" Appearance="Transparent" Width="70" Height="60">
+                    <StackPanel>
+                        <ui:SymbolIcon Symbol="Target24" Foreground="#34D399" FontSize="24" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Focus" Foreground="#34D399" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button Click="Nav_Store" Margin="5,10" Appearance="Transparent" Width="70" Height="60">
+                    <StackPanel>
+                        <ui:SymbolIcon Symbol="Cart24" Foreground="#FBBF24" FontSize="24" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Store" Foreground="#FBBF24" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </ui:Button>
             </StackPanel>
 
-            <Grid Margin="80,0,0,0">
+            <Grid Grid.Column="1">
                 <StackPanel x:Name="HubView" Visibility="Visible" Margin="40">
-                    <Image Source="pack://application:,,,/Assets/logo.png" Height="48" HorizontalAlignment="Left" Margin="0,0,0,15" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock x:Name="TxtUser" FontSize="32" FontWeight="Bold" Foreground="#38BDF8"/>
                     <TextBlock x:Name="TxtRank" FontSize="18" Margin="0,5"/>
                     <ProgressBar x:Name="XPBar" Height="10" Background="#222" Foreground="#34D399" Margin="0,20"/>
                     <TextBlock x:Name="TxtStreak" FontSize="14" Foreground="#FBBF24"/>
                 </StackPanel>
 
-                <StackPanel x:Name="FocusView" Visibility="Collapsed" Margin="40">
-                    <TextBlock Text="SUBJECTS" FontSize="24" Margin="0,0,0,20"/>
-                    <ItemsControl x:Name="SubjectList">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#1A1A1A" Margin="0,5" Padding="15" CornerRadius="8">
-                                    <DockPanel>
-                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="18"/>
-                                        <Button Content="START SHIELD" Click="StartFocus_Click" Tag="{Binding}" HorizontalAlignment="Right" Background="#38BDF8" Foreground="Black" Padding="10,5"/>
-                                    </DockPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                <Grid x:Name="FocusView" Visibility="Collapsed" Margin="40">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Text="SUBJECTS" FontSize="24" Margin="0,0,0,20"/>
+                    
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="SubjectList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#801A1A1A" Margin="0,5,10,5" Padding="15" CornerRadius="8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,15,0">
+                                                <ui:Button Icon="{ui:SymbolIcon Symbol=ChevronUp24}" Click="MoveSubUp_Click" Tag="{Binding}" Appearance="Transparent" Foreground="Gray"/>
+                                                <ui:Button Icon="{ui:SymbolIcon Symbol=ChevronDown24}" Click="MoveSubDown_Click" Tag="{Binding}" Appearance="Transparent" Foreground="Gray"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding GoalMins, StringFormat='{}Goal: {0} minutes'}" FontSize="12" Foreground="#888"/>
+                                            </StackPanel>
+                                            
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                <ui:Button Icon="{ui:SymbolIcon Symbol=Delete24}" Click="DeleteSub_Click" Tag="{Binding}" Appearance="Danger" Margin="0,0,15,0"/>
+                                                <Button Content="START SHIELD" Click="StartFocus_Click" Tag="{Binding}" Background="#38BDF8" Foreground="Black" Padding="15,5" FontWeight="Bold"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="2" Background="#80111111" Padding="15" CornerRadius="8" Margin="0,20,10,0">
+                        <DockPanel>
+                            <TextBlock Text="NEW:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#34D399"/>
+                            <TextBox x:Name="TxtSubName" Width="200" Text="Subject Name" GotFocus="ClearPlaceholder" Margin="0,0,10,0"/>
+                            <TextBox x:Name="TxtSubMins" Width="80" Text="Mins" GotFocus="ClearPlaceholder" Margin="0,0,10,0"/>
+                            <Button Content="ADD" Click="AddSub_Click" Background="#34D399" Foreground="Black" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                    </Border>
+                </Grid>
 
                 <Grid x:Name="StoreView" Visibility="Collapsed" Margin="40">
                     <StackPanel>
                         <TextBlock Text="MARKET" FontSize="24"/>
-                        <Border Background="#1A1A1A" Padding="20" Margin="0,20" CornerRadius="10">
+                        <Border Background="#801A1A1A" Padding="20" Margin="0,20" CornerRadius="10">
                             <DockPanel>
                                 <TextBlock Text="Streak Freeze" FontSize="18" VerticalAlignment="Center"/>
                                 <Button Content="1500 XP" Click="BuyFreeze_Click" HorizontalAlignment="Right" Background="#FBBF24" Foreground="Black" Padding="15,5"/>
@@ -51,20 +135,23 @@
                     </StackPanel>
                 </Grid>
 
-                <Grid x:Name="EngineView" Visibility="Collapsed" Background="#0A0A0A">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock x:Name="TxtTimer" Text="25:00" FontSize="120" HorizontalAlignment="Center" Foreground="#34D399"/>
-                        <TextBlock x:Name="TxtFocusStatus" Text="FLOW STATE ACTIVE" HorizontalAlignment="Center" Foreground="#38BDF8"/>
-                    </StackPanel>
+                <Grid x:Name="EngineView" Visibility="Collapsed" Background="#0A0A0A" Panel.ZIndex="50">
+                    <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ui:ProgressRing x:Name="TimerRing" Progress="100" Width="400" Height="400" Thickness="12" Foreground="#34D399" Background="#222" IsIndeterminate="False"/>
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtTimer" Text="25:00" FontSize="80" HorizontalAlignment="Center" Foreground="#34D399" FontWeight="Light"/>
+                            <TextBlock x:Name="TxtFocusStatus" Text="FLOW STATE ACTIVE" HorizontalAlignment="Center" Foreground="#38BDF8" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Grid>
         </Grid>
 
-        <Grid x:Name="BlockerOverlay" Visibility="Collapsed" Background="#EF4444">
+        <Grid x:Name="BlockerOverlay" Grid.RowSpan="2" Visibility="Collapsed" Background="#EF4444" Panel.ZIndex="200">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Text="FOCUS BREACHED" FontSize="72" FontWeight="Black" Foreground="White"/>
-                <TextBlock Text="RETURN TO WORK IMMEDIATELY" FontSize="24" HorizontalAlignment="Center"/>
+                <TextBlock Text="RETURN TO WORK IMMEDIATELY" FontSize="24" HorizontalAlignment="Center" Foreground="White"/>
             </StackPanel>
         </Grid>
     </Grid>
-</Window>
+</ui:FluentWindow>
