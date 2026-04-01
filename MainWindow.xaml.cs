@@ -44,21 +44,70 @@ namespace UnbreakfocusPC {
             }
         }
 
-        private void CreateProfile_Click(object? sender, RoutedEventArgs e) {
-            if (TxtNewPin.Text.Length != 4 || !int.TryParse(TxtNewPin.Text, out _)) {
-                ShowAuthError("INVALID PIN FORMAT. MUST BE 4 DIGITS.");
-                return;
+        private void ClearPlaceholder(object? sender, RoutedEventArgs e) {
+            if (sender is System.Windows.Controls.TextBox tb && 
+               (tb.Text == "ENTER 4-DIGIT PIN" || tb.Text == "PIN" || tb.Text == "Subject Name" || 
+                tb.Text == "Mins" || tb.Text == "CUSTOM_ID" || tb.Text == "ENTER OPERATOR NAME" || 
+                tb.Text == "CUSTOM GOAL NAME")) {
+                tb.Text = string.Empty;
             }
-
-            _user = new UserData { UniqueId = "@UF-" + new Random().Next(1000, 9999), Pin = TxtNewPin.Text, UserName = "Operator", XP = 0, Streak = 0 };
-            _user.Subjects.Add(new Subject { Name = "Deep Work", GoalMins = 25 });
-            Persistence.Save(_user);
-            CompleteAuthentication();
         }
 
-        private void RestoreProfile_Click(object? sender, RoutedEventArgs e) {
-            // Cloud sync was skipped; disabled to prevent compiler errors
-            ShowAuthError("CLOUD SYNC CURRENTLY DISABLED.");
+        private void CmbGoal_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {
+            if (CustomGoalPanel == null) return;
+            // Index 6 is "Custom Goal..."
+            CustomGoalPanel.Visibility = CmbGoal.SelectedIndex == 6 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void CreateProfile_Click(object? sender, RoutedEventArgs e) {
+            string idSuffix = TxtNewId.Text.Trim();
+            string operatorName = TxtNewName.Text.Trim();
+
+            // Strict Validation
+            if (string.IsNullOrWhiteSpace(idSuffix) || idSuffix == "CUSTOM_ID") { ShowAuthError("INVALID ID."); return; }
+            if (string.IsNullOrWhiteSpace(operatorName) || operatorName == "ENTER OPERATOR NAME") { ShowAuthError("INVALID NAME."); return; }
+            if (TxtNewPin.Text.Length != 4 || !int.TryParse(TxtNewPin.Text, out _)) { ShowAuthError("INVALID PIN FORMAT."); return; }
+            if (CmbGoal.SelectedIndex == -1) { ShowAuthError("SELECT A TARGET GOAL."); return; }
+
+            string targetGoal = "";
+            DateTime targetDate = DateTime.MinValue;
+
+            // Handle Matrix vs Custom
+            if (CmbGoal.SelectedIndex == 6) {
+                if (string.IsNullOrWhiteSpace(TxtCustomGoal.Text) || TxtCustomGoal.Text == "CUSTOM GOAL NAME") { ShowAuthError("ENTER CUSTOM GOAL."); return; }
+                if (!DpCustomDate.SelectedDate.HasValue) { ShowAuthError("SELECT CUSTOM DATE."); return; }
+                
+                targetGoal = TxtCustomGoal.Text.Trim();
+                targetDate = DpCustomDate.SelectedDate.Value;
+            } else {
+                var selected = (System.Windows.Controls.ComboBoxItem)CmbGoal.SelectedItem;
+                targetGoal = selected.Content.ToString()!.Split(" (")[0]; // Extracts name before the parenthesis
+                
+                // Hardcoded matrix mapping based on your requirements
+                targetDate = targetGoal switch {
+                    "ICSE" => new DateTime(2027, 2, 17),
+                    "CBSE 10th" => new DateTime(2027, 2, 15),
+                    "ISC" => new DateTime(2027, 2, 10),
+                    "CBSE 12th" => new DateTime(2027, 2, 15),
+                    "JEE Mains" => new DateTime(2027, 1, 28),
+                    "JEE Advance" => new DateTime(2026, 5, 17),
+                    _ => DateTime.Now
+                };
+            }
+
+            _user = new UserData { 
+                UniqueId = "@UF-" + idSuffix, 
+                Pin = TxtNewPin.Text, 
+                UserName = operatorName, 
+                TargetGoal = targetGoal,
+                TargetDate = targetDate,
+                XP = 0, 
+                Streak = 0 
+            };
+            
+            _user.Subjects.Add(new Subject { Name = " Deep Work", GoalMins = 25 });
+            Persistence.Save(_user);
+            CompleteAuthentication();
         }
 
         private void ShowAuthError(string message) { TxtAuthError.Text = message; TxtAuthError.Visibility = Visibility.Visible; }

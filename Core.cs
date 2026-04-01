@@ -20,6 +20,8 @@ namespace UnbreakfocusPC {
         [FirestoreProperty] public string UniqueId { get; set; } = string.Empty;
         [FirestoreProperty] public string Pin { get; set; } = string.Empty;
         [FirestoreProperty] public string UserName { get; set; } = string.Empty;
+        [FirestoreProperty] public string TargetGoal { get; set; } = string.Empty; // Added
+        [FirestoreProperty] public DateTime TargetDate { get; set; } // Added
         [FirestoreProperty] public double XP { get; set; }
         [FirestoreProperty] public int Streak { get; set; }
         public List<Subject> Subjects { get; set; } = new();
