@@ -36,6 +36,7 @@ namespace UnbreakfocusPC {
             
             if (!string.IsNullOrEmpty(_user.UniqueId)) {
                 CompleteAuthentication();
+                RequirePinLock(); // Lock the app on launch if profile exists
             }
             
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -49,7 +50,7 @@ namespace UnbreakfocusPC {
             return newUser;
         }
 
-        // --- AUTH & ONBOARDING ---
+        // --- AUTH, ONBOARDING & PIN LOCK ---
         private void CompleteAuthentication() {
             if (AuthView != null) AuthView.Visibility = Visibility.Collapsed;
             MainContainer.Visibility = Visibility.Visible;
@@ -93,6 +94,31 @@ namespace UnbreakfocusPC {
             if (TxtAuthError != null) {
                 TxtAuthError.Text = message;
                 TxtAuthError.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void RequirePinLock() {
+            if (!string.IsNullOrEmpty(_user.Pin)) {
+                PinLockOverlay.Visibility = Visibility.Visible;
+                TxtUnlockPin.Password = "";
+                TxtLockError.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void UnlockApp_Click(object sender, RoutedEventArgs e) {
+            if (TxtUnlockPin.Password == _user.Pin) {
+                PinLockOverlay.Visibility = Visibility.Collapsed;
+            } else {
+                TxtLockError.Text = "INVALID PIN.";
+                TxtLockError.Visibility = Visibility.Visible;
+            }
+        }
+
+        protected override void OnStateChanged(EventArgs e) {
+            base.OnStateChanged(e);
+            // Relock the app when brought back from the system tray
+            if (this.WindowState == WindowState.Normal && !string.IsNullOrEmpty(_user.Pin)) {
+                RequirePinLock();
             }
         }
 
@@ -166,6 +192,21 @@ namespace UnbreakfocusPC {
             }
         }
 
+        // --- SETTINGS CRUD ---
+        private void SaveSettings_Click(object sender, RoutedEventArgs e) {
+            if (TxtEditPin.Password.Length > 0 && TxtEditPin.Password.Length != 4) {
+                System.Windows.MessageBox.Show("PIN must be exactly 4 digits.", "Invalid Configuration");
+                return;
+            }
+
+            _user.UserName = TxtEditName.Text.Trim();
+            if (TxtEditPin.Password.Length == 4) _user.Pin = TxtEditPin.Password;
+            
+            Persistence.Save(_user);
+            UpdateUI();
+            System.Windows.MessageBox.Show("Configuration updated securely.", "Settings Saved");
+        }
+
         // --- POMODORO ENGINE LOGIC ---
         private void Timer_Tick(object? sender, EventArgs e) {
             if (_secondsRemaining > 0) {
@@ -222,7 +263,10 @@ namespace UnbreakfocusPC {
 
             if (success) {
                 _user.Streak++;
+                System.Media.SystemSounds.Asterisk.Play(); // Auditory success alert
                 new ToastContentBuilder().AddText("CYCLE COMPLETE").AddText("Focus session finished successfully.").Show();
+            } else {
+                System.Media.SystemSounds.Hand.Play(); // Auditory penalty alert
             }
 
             Persistence.Save(_user);
@@ -239,6 +283,10 @@ namespace UnbreakfocusPC {
             if (isBreach) {
                 if (_activeBlocker == null) {
                     _activeBlocker = new BlockerWindow(_isStrictMode);
+                    
+                    // Hook into the escape hatch event
+                    _activeBlocker.OverrideTriggered += (s, ev) => ApplyPenalty();
+                    
                     _activeBlocker.Show();
                 }
                 if (_isStrictMode) ApplyPenalty();
@@ -325,8 +373,15 @@ namespace UnbreakfocusPC {
         private void Nav_Hub(object? sender, RoutedEventArgs e) => ShowView(HubView);
         private void Nav_Focus(object? sender, RoutedEventArgs e) => ShowView(FocusView);
         private void Nav_Store(object? sender, RoutedEventArgs e) => ShowView(StoreView);
+        
+        private void Nav_Settings(object? sender, RoutedEventArgs e) {
+            TxtEditName.Text = _user.UserName;
+            TxtEditPin.Password = _user.Pin;
+            ShowView(SettingsView);
+        }
+
         private void ShowView(UIElement view) {
-            HubView.Visibility = FocusView.Visibility = StoreView.Visibility = Visibility.Collapsed;
+            HubView.Visibility = FocusView.Visibility = StoreView.Visibility = SettingsView.Visibility = Visibility.Collapsed;
             view.Visibility = Visibility.Visible;
         }
     }
