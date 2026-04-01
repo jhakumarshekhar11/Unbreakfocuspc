@@ -106,8 +106,8 @@
                         <Border Grid.Row="2" Background="#80111111" Padding="15" CornerRadius="8" Margin="0,20,10,0">
                             <DockPanel>
                                 <TextBlock Text="NEW:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="#34D399"/>
-                                <TextBox x:Name="TxtSubName" Width="200" PlaceholderText="Subject Name" Margin="0,0,10,0"/>
-                                <TextBox x:Name="TxtSubMins" Width="80" PlaceholderText="Mins" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtSubName" Width="200" Text="Subject Name" GotFocus="ClearPlaceholder" Margin="0,0,10,0"/>
+                                <TextBox x:Name="TxtSubMins" Width="80" Text="Mins" GotFocus="ClearPlaceholder" Margin="0,0,10,0"/>
                                 <Button Content="ADD" Click="AddSub_Click" Background="#34D399" Foreground="Black" HorizontalAlignment="Right"/>
                             </DockPanel>
                         </Border>
