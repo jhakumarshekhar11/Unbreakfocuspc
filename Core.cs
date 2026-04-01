@@ -11,19 +11,19 @@ namespace UnbreakfocusPC {
         public string Name { get; set; } = string.Empty;
         public int GoalMins { get; set; }
         public double TimeDone { get; set; }
-        public string Color { get; set; } = "#38BDF8";
     }
 
     public class UserData {
-        public string UniqueId { get; set; } = string.Empty; // Will store @UFDESK-XXXX
+        public string UniqueId { get; set; } = string.Empty;
         public string Pin { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
-        public string TargetGoal { get; set; } = string.Empty;
-        public DateTime TargetDate { get; set; }
         public double XP { get; set; }
         public int Streak { get; set; }
         public DateTime LastDate { get; set; } = DateTime.Now;
-        public int BreachesToday { get; set; } = 0; // NEW: For escalating penalties
+        public int BreachesToday { get; set; } = 0;
+        
+        // Heatmap tracking: "yyyy-MM-dd" -> true (Met Goal) / false (Failed)
+        public Dictionary<string, bool> History { get; set; } = new(); 
 
         public List<Subject> Subjects { get; set; } = new();
         public List<string> Inventory { get; set; } = new();
@@ -49,9 +49,7 @@ namespace UnbreakfocusPC {
             } catch { }
 
             StringBuilder sb = new StringBuilder(256);
-            if (GetWindowText(hwnd, sb, sb.Capacity) > 0) {
-                windowTitle = sb.ToString().ToLower();
-            }
+            if (GetWindowText(hwnd, sb, sb.Capacity) > 0) windowTitle = sb.ToString().ToLower();
 
             return (processName, windowTitle);
         }

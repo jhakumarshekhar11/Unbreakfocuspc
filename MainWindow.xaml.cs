@@ -3,7 +3,10 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Linq;
 using Wpf.Ui.Controls;
-using System.Windows.Controls;
+using System.Windows.Media;
+using System.ComponentModel;
+using Microsoft.Toolkit.Uwp.Notifications;
+using Microsoft.Win32;
 
 namespace UnbreakfocusPC {
     public partial class MainWindow : FluentWindow {
@@ -12,13 +15,24 @@ namespace UnbreakfocusPC {
         private DispatcherTimer _watchdogTimer;
         private int _totalSeconds;
         private int _secondsRemaining;
+        private int _autosaveTickCounter = 0;
         private bool _isStrictMode = true;
-        private string[] _distractions = { "chrome", "discord", "steam", "brave", "msedge" };
+        private bool _isRestMode = false;
+        private bool _isExplicitExit = false;
+        
+        private BlockerWindow? _activeBlocker;
+        private System.Windows.Forms.NotifyIcon _trayIcon;
+
+        private string[] _blockedProcesses = { "discord", "steam", "riotclient" };
+        private string[] _blockedTitles = { "youtube", "twitter", "reddit", "netflix", "instagram" };
 
         public MainWindow() {
             InitializeComponent();
-            // Reverted to local Load() to match your current Core.cs
-            _user = Persistence.Load() ?? new UserData();
+            _user = Persistence.Load() ?? CreateNewUser();
+            
+            CheckMidnightReset();
+            SetupTrayIcon();
+            CheckStartupStatus();
             
             if (!string.IsNullOrEmpty(_user.UniqueId)) {
                 CompleteAuthentication();
@@ -30,9 +44,14 @@ namespace UnbreakfocusPC {
             _watchdogTimer.Tick += Watchdog_Tick;
         }
 
-        /* --- AUTH LOGIC (LOCAL ONLY) --- */
+        private UserData CreateNewUser() {
+            var newUser = new UserData { UniqueId = "", UserName = "" };
+            return newUser;
+        }
+
+        // --- AUTH & ONBOARDING ---
         private void CompleteAuthentication() {
-            AuthView.Visibility = Visibility.Collapsed;
+            if (AuthView != null) AuthView.Visibility = Visibility.Collapsed;
             MainContainer.Visibility = Visibility.Visible;
             UpdateUI();
         }
@@ -40,82 +59,217 @@ namespace UnbreakfocusPC {
         private void ClearPlaceholder(object? sender, RoutedEventArgs e) {
             if (sender is System.Windows.Controls.TextBox tb && 
                (tb.Text == "ENTER 4-DIGIT PIN" || tb.Text == "PIN" || tb.Text == "Subject Name" || 
-                tb.Text == "Mins" || tb.Text == "CUSTOM_ID" || tb.Text == "ENTER OPERATOR NAME" || 
-                tb.Text == "CUSTOM GOAL NAME")) {
+                tb.Text == "Mins" || tb.Text == "CUSTOM_ID" || tb.Text == "ENTER OPERATOR NAME")) {
                 tb.Text = string.Empty;
             }
-        }
-
-        private void CmbGoal_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) {
-            if (CustomGoalPanel == null) return;
-            // Index 6 is "Custom Goal..."
-            CustomGoalPanel.Visibility = CmbGoal.SelectedIndex == 6 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void CreateProfile_Click(object? sender, RoutedEventArgs e) {
             string idSuffix = TxtNewId.Text.Trim();
             string operatorName = TxtNewName.Text.Trim();
 
-            // Strict Validation
             if (string.IsNullOrWhiteSpace(idSuffix) || idSuffix == "CUSTOM_ID") { ShowAuthError("INVALID ID."); return; }
             if (string.IsNullOrWhiteSpace(operatorName) || operatorName == "ENTER OPERATOR NAME") { ShowAuthError("INVALID NAME."); return; }
             if (TxtNewPin.Text.Length != 4 || !int.TryParse(TxtNewPin.Text, out _)) { ShowAuthError("INVALID PIN FORMAT."); return; }
-            if (CmbGoal.SelectedIndex == -1) { ShowAuthError("SELECT A TARGET GOAL."); return; }
-
-            string targetGoal = "";
-            DateTime targetDate = DateTime.MinValue;
-
-            // Handle Matrix vs Custom
-            if (CmbGoal.SelectedIndex == 6) {
-                if (string.IsNullOrWhiteSpace(TxtCustomGoal.Text) || TxtCustomGoal.Text == "CUSTOM GOAL NAME") { ShowAuthError("ENTER CUSTOM GOAL."); return; }
-                if (!DpCustomDate.SelectedDate.HasValue) { ShowAuthError("SELECT CUSTOM DATE."); return; }
-                
-                targetGoal = TxtCustomGoal.Text.Trim();
-                targetDate = DpCustomDate.SelectedDate.Value;
-            } else {
-                var selected = (System.Windows.Controls.ComboBoxItem)CmbGoal.SelectedItem;
-                targetGoal = selected.Content.ToString()!.Split(" (")[0]; // Extracts name before the parenthesis
-                
-                // Hardcoded matrix mapping based on your requirements
-                targetDate = targetGoal switch {
-                    "ICSE" => new DateTime(2027, 2, 17),
-                    "CBSE 10th" => new DateTime(2027, 2, 15),
-                    "ISC" => new DateTime(2027, 2, 10),
-                    "CBSE 12th" => new DateTime(2027, 2, 15),
-                    "JEE Mains" => new DateTime(2027, 1, 28),
-                    "JEE Advance" => new DateTime(2026, 5, 17),
-                    _ => DateTime.Now
-                };
-            }
 
             _user = new UserData { 
                 UniqueId = "@UFDESK-" + idSuffix, 
                 Pin = TxtNewPin.Text, 
                 UserName = operatorName, 
-                TargetGoal = targetGoal,
-                TargetDate = targetDate,
                 XP = 0, 
                 Streak = 0 
             };
             
-            _user.Subjects.Add(new Subject { Name = " Deep Work", GoalMins = 25 });
+            _user.Subjects.Add(new Subject { Name = "Deep Work", GoalMins = 60 });
             Persistence.Save(_user);
             CompleteAuthentication();
         }
-        
+
         private void RestoreProfile_Click(object? sender, RoutedEventArgs e) {
-            // Cloud sync was disabled in previous steps to satisfy local builds
-            ShowAuthError("CLOUD RESTORE IS CURRENTLY OFFLINE.");
+            ShowAuthError("CLOUD RESTORE IS DISABLED FOR DESKTOP.");
         }
 
-        /* --- FOCUS CRUD LOGIC --- */
-        private void AddSub_Click(object? sender, RoutedEventArgs e) {
-            if (string.IsNullOrWhiteSpace(TxtSubName.Text) || !int.TryParse(TxtSubMins.Text, out int mins) || mins <= 0) {
-                System.Windows.MessageBox.Show("Invalid Subject Data."); return;
+        private void ShowAuthError(string message) {
+            if (TxtAuthError != null) {
+                TxtAuthError.Text = message;
+                TxtAuthError.Visibility = Visibility.Visible;
             }
-            _user.Subjects.Add(new Subject { Name = " " + TxtSubName.Text.Trim(), GoalMins = mins });
+        }
+
+        // --- DATA SAFETY & OS INTEGRATION ---
+        private void CheckMidnightReset() {
+            if (_user.LastDate.Date < DateTime.Now.Date) {
+                _user.BreachesToday = 0;
+                
+                if (_user.Subjects.Count > 0) {
+                    _user.History[_user.LastDate.ToString("yyyy-MM-dd")] = true; 
+                }
+                
+                _user.LastDate = DateTime.Now;
+                Persistence.Save(_user);
+            }
+        }
+
+        private void SetupTrayIcon() {
+            _trayIcon = new System.Windows.Forms.NotifyIcon {
+                Icon = new System.Drawing.Icon("Assets/logo.ico"),
+                Visible = true,
+                Text = "Unbreakfocus PC"
+            };
+            _trayIcon.DoubleClick += (s, e) => {
+                this.Show();
+                this.WindowState = WindowState.Normal;
+            };
+
+            var menu = new System.Windows.Forms.ContextMenuStrip();
+            menu.Items.Add("Open Hub", null, (s, e) => { this.Show(); this.WindowState = WindowState.Normal; });
+            menu.Items.Add("Exit Sequence", null, (s, e) => {
+                if (_timer.IsEnabled && _isStrictMode) {
+                    System.Windows.MessageBox.Show("STRICT MODE ACTIVE. EXIT DENIED.", "Access Denied", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                _isExplicitExit = true;
+                Application.Current.Shutdown();
+            });
+            _trayIcon.ContextMenuStrip = menu;
+        }
+
+        protected override void OnClosing(CancelEventArgs e) {
+            if (_isExplicitExit) {
+                _trayIcon.Dispose();
+                base.OnClosing(e);
+                return;
+            }
+
+            if (_timer.IsEnabled && _isStrictMode) {
+                e.Cancel = true;
+                System.Windows.MessageBox.Show("SHIELD ACTIVE. YOU CANNOT CLOSE THE APP.", "Strict Mode", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            e.Cancel = true;
+            this.Hide();
+            new ToastContentBuilder().AddText("Unbreakfocus is still active in the background.").Show();
+        }
+
+        private void CheckStartupStatus() {
+            using RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)!;
+            ChkStartup.IsChecked = key.GetValue("UnbreakfocusPC") != null;
+        }
+
+        private void StartupToggle_Changed(object sender, RoutedEventArgs e) {
+            using RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)!;
+            if (ChkStartup.IsChecked == true) {
+                key.SetValue("UnbreakfocusPC", System.Reflection.Assembly.GetExecutingLibrary().Location);
+            } else {
+                key.DeleteValue("UnbreakfocusPC", false);
+            }
+        }
+
+        // --- POMODORO ENGINE LOGIC ---
+        private void Timer_Tick(object? sender, EventArgs e) {
+            if (_secondsRemaining > 0) {
+                _secondsRemaining--;
+                
+                if (!_isRestMode) {
+                    _user.XP += 0.0033; // ~0.2 XP per min
+                }
+
+                TxtTimer.Text = TimeSpan.FromSeconds(_secondsRemaining).ToString(@"mm\:ss");
+                TimerRing.Progress = ((double)_secondsRemaining / _totalSeconds) * 100;
+
+                _autosaveTickCounter++;
+                if (_autosaveTickCounter >= 30) {
+                    Persistence.Save(_user);
+                    _autosaveTickCounter = 0;
+                }
+            } else {
+                if (!_isRestMode) {
+                    _isRestMode = true;
+                    _totalSeconds = 5 * 60; // 5 Minute Rest
+                    _secondsRemaining = _totalSeconds;
+                    TimerRing.Progress = 100;
+                    TimerRing.Foreground = new SolidColorBrush(Colors.SkyBlue);
+                    new ToastContentBuilder().AddText("REST CYCLE ACTIVE").AddText("Take a 5 minute break.").Show();
+                } else {
+                    EndSession(true);
+                }
+            }
+        }
+
+        private void StartFocus_Click(object? sender, RoutedEventArgs e) {
+            if (sender is FrameworkElement element && element.Tag is Subject sub) {
+                _totalSeconds = sub.GoalMins * 60;
+                _secondsRemaining = _totalSeconds;
+                TimerRing.Progress = 100;
+                TimerRing.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34D399"));
+                EngineView.Visibility = Visibility.Visible;
+                _timer.Start();
+                _watchdogTimer.Start();
+            }
+        }
+
+        private void EndSession(bool success) {
+            _timer.Stop();
+            _watchdogTimer.Stop();
+            _isRestMode = false;
+            EngineView.Visibility = Visibility.Collapsed;
+            
+            if (_activeBlocker != null) {
+                _activeBlocker.Close();
+                _activeBlocker = null;
+            }
+
+            if (success) {
+                _user.Streak++;
+                new ToastContentBuilder().AddText("CYCLE COMPLETE").AddText("Focus session finished successfully.").Show();
+            }
+
             Persistence.Save(_user);
-            TxtSubName.Text = "Subject Name"; TxtSubMins.Text = "Mins";
+            UpdateUI();
+        }
+
+        // --- ADVANCED WATCHDOG ---
+        private void Watchdog_Tick(object? sender, EventArgs e) {
+            if (_isRestMode) return; 
+
+            var (process, title) = Watchdog.GetActiveWindowInfo();
+            bool isBreach = _blockedProcesses.Contains(process) || _blockedTitles.Any(t => title.Contains(t));
+
+            if (isBreach) {
+                if (_activeBlocker == null) {
+                    _activeBlocker = new BlockerWindow(_isStrictMode);
+                    _activeBlocker.Show();
+                }
+                if (_isStrictMode) ApplyPenalty();
+            } else {
+                if (_activeBlocker != null) {
+                    _activeBlocker.Close();
+                    _activeBlocker = null;
+                }
+            }
+        }
+
+        private void ApplyPenalty() {
+            _user.BreachesToday++;
+            int penalty = 150 * _user.BreachesToday;
+            _user.XP = Math.Max(0, _user.XP - penalty);
+            _user.Streak = 0;
+            EndSession(false);
+            new ToastContentBuilder().AddText("STRICT MODE BREACH").AddText($"Penalty Applied: -{penalty} XP").Show();
+        }
+
+        // --- UI & CRUD LOGIC ---
+        private void AddSub_Click(object? sender, RoutedEventArgs e) {
+            TxtSubMins.BorderBrush = Brushes.Transparent;
+            TxtSubName.BorderBrush = Brushes.Transparent;
+
+            if (string.IsNullOrWhiteSpace(TxtSubName.Text)) { TxtSubName.BorderBrush = Brushes.Red; return; }
+            if (!int.TryParse(TxtSubMins.Text, out int mins) || mins <= 0) { TxtSubMins.BorderBrush = Brushes.Red; return; }
+
+            _user.Subjects.Add(new Subject { Name = TxtSubName.Text.Trim(), GoalMins = mins });
+            Persistence.Save(_user);
+            TxtSubName.Text = ""; TxtSubMins.Text = "";
             UpdateUI();
         }
 
@@ -127,121 +281,53 @@ namespace UnbreakfocusPC {
             }
         }
 
-        private void MoveSubUp_Click(object? sender, RoutedEventArgs e) {
-            if (sender is FrameworkElement element && element.Tag is Subject sub) {
-                int index = _user.Subjects.IndexOf(sub);
-                if (index > 0) {
-                    _user.Subjects.RemoveAt(index);
-                    _user.Subjects.Insert(index - 1, sub);
-                    Persistence.Save(_user);
-                    UpdateUI();
-                }
+        private void BuyFreeze_Click(object? sender, RoutedEventArgs e) {
+            if (_user.XP >= 1500) { 
+                _user.XP -= 1500; 
+                _user.Inventory.Add("STREAK_FREEZE"); 
+                Persistence.Save(_user); 
+                UpdateUI(); 
             }
         }
 
-        private void MoveSubDown_Click(object? sender, RoutedEventArgs e) {
-            if (sender is FrameworkElement element && element.Tag is Subject sub) {
-                int index = _user.Subjects.IndexOf(sub);
-                if (index >= 0 && index < _user.Subjects.Count - 1) {
-                    _user.Subjects.RemoveAt(index);
-                    _user.Subjects.Insert(index + 1, sub);
-                    Persistence.Save(_user);
-                    UpdateUI();
-                }
-            }
-        }
-
-        /* --- TIMER ENGINE LOGIC --- */
-        private void Timer_Tick(object? sender, EventArgs e) {
-            if (_secondsRemaining > 0) {
-                _secondsRemaining--;
-                _user.XP += 0.0033;
-                TxtTimer.Text = TimeSpan.FromSeconds(_secondsRemaining).ToString(@"mm\:ss");
-                
-                double percentage = ((double)_secondsRemaining / _totalSeconds) * 100;
-                TimerRing.Progress = percentage;
-            } else {
-                EndSession(true);
-            }
-        }
-
-        private void Watchdog_Tick(object? sender, EventArgs e) {
-            string active = Watchdog.GetActiveProcessName();
-            if (_distractions.Contains(active)) {
-                BlockerOverlay.Visibility = Visibility.Visible;
-                if (_isStrictMode) ApplyPenalty();
-            } else {
-                BlockerOverlay.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private void ApplyPenalty() {
-            _user.XP = Math.Max(0, _user.XP - 150);
-            _user.Streak = 0;
-            EndSession(false);
-            System.Windows.MessageBox.Show("PENALTY APPLIED: -150 XP & STREAK RESET.");
-        }
-
-        private void EndSession(bool success) {
-            _timer.Stop();
-            _watchdogTimer.Stop();
-            EngineView.Visibility = Visibility.Collapsed;
-            if (success) _user.Streak++;
-            Persistence.Save(_user);
-            UpdateUI();
-        }
-
-        private void StartFocus_Click(object? sender, RoutedEventArgs e) {
-            if (sender is FrameworkElement element && element.Tag is Subject sub) {
-                _totalSeconds = sub.GoalMins * 60;
-                _secondsRemaining = _totalSeconds;
-                TimerRing.Progress = 100;
-                EngineView.Visibility = Visibility.Visible;
-                _timer.Start();
-                _watchdogTimer.Start();
-            }
-        }
-
-        /* --- NAVIGATION & UI UPDATES --- */
         private void UpdateUI() {
             if (_user == null) return;
-
-            // Display Name and ID
             TxtUser.Text = $"{_user.UserName.ToUpper()} [{_user.UniqueId}]";
-
-            // Calculate T-Minus days for the objective
-            int daysRemaining = (_user.TargetDate.Date - DateTime.Now.Date).Days;
-            string targetDisplay = string.IsNullOrEmpty(_user.TargetGoal) 
-                ? "NO ACTIVE TARGET" 
-                : $"OBJECTIVE: {_user.TargetGoal.ToUpper()} (T-MINUS {Math.Max(0, daysRemaining)} DAYS)";
-
-            // Append the target data below the rank
-            TxtRank.Text = $"Rank: {(_user.XP < 125 ? "Novice" : "Focus Elite")} | Level {_user.GetLevel()}\n{targetDisplay}";
-            
-            XPBar.Value = _user.XP % 100; // Simplified visual progression
+            TxtRank.Text = $"Rank: Level {_user.GetLevel()}";
+            XPBar.Value = _user.XP % 100;
             TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
             
-            // Nulling the source first forces the WPF ItemsControl to redraw the list
-            SubjectList.ItemsSource = null; 
+            SubjectList.ItemsSource = null;
             SubjectList.ItemsSource = _user.Subjects;
+
+            DrawHeatmap();
         }
 
+        private void DrawHeatmap() {
+            if (HeatmapGrid == null) return;
+            HeatmapGrid.Children.Clear();
+            for (int i = 29; i >= 0; i--) {
+                string dateKey = DateTime.Now.AddDays(-i).ToString("yyyy-MM-dd");
+                var block = new System.Windows.Controls.Border {
+                    Width = 15, Height = 15, Margin = new Thickness(2),
+                    CornerRadius = new CornerRadius(2),
+                    Background = Brushes.DarkGray
+                };
+
+                if (_user.History.ContainsKey(dateKey)) {
+                    block.Background = _user.History[dateKey] ? Brushes.MediumSeaGreen : Brushes.DarkRed;
+                }
+                HeatmapGrid.Children.Add(block);
+            }
+        }
+
+        // --- NAVIGATION ---
         private void Nav_Hub(object? sender, RoutedEventArgs e) => ShowView(HubView);
         private void Nav_Focus(object? sender, RoutedEventArgs e) => ShowView(FocusView);
         private void Nav_Store(object? sender, RoutedEventArgs e) => ShowView(StoreView);
-
         private void ShowView(UIElement view) {
             HubView.Visibility = FocusView.Visibility = StoreView.Visibility = Visibility.Collapsed;
             view.Visibility = Visibility.Visible;
-        }
-
-        private void BuyFreeze_Click(object? sender, RoutedEventArgs e) {
-            if (_user.XP >= 1500) {
-                _user.XP -= 1500;
-                _user.Inventory.Add("STREAK_FREEZE");
-                Persistence.Save(_user);
-                UpdateUI();
-            }
         }
     }
 }
