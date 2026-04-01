@@ -2,22 +2,23 @@ using System;
 using System.Windows;
 using System.Windows.Threading;
 using System.Linq;
-using Wpf.Ui.Controls; // Requires WPF-UI namespace
-using System.Windows.Controls; // Alias disambiguation
+using Wpf.Ui.Controls;
+using System.Windows.Controls;
 
 namespace UnbreakfocusPC {
-    public partial class MainWindow : FluentWindow { // Changed to FluentWindow
+    public partial class MainWindow : FluentWindow {
         private UserData _user;
         private DispatcherTimer _timer;
         private DispatcherTimer _watchdogTimer;
-        private int _totalSeconds; // Added for Ring calculations
+        private int _totalSeconds;
         private int _secondsRemaining;
         private bool _isStrictMode = true;
         private string[] _distractions = { "chrome", "discord", "steam", "brave", "msedge" };
 
         public MainWindow() {
             InitializeComponent();
-            _user = Persistence.LoadLocal() ?? new UserData();
+            // Reverted to local Load() to match your current Core.cs
+            _user = Persistence.Load() ?? new UserData();
             
             if (!string.IsNullOrEmpty(_user.UniqueId)) {
                 CompleteAuthentication();
@@ -29,7 +30,7 @@ namespace UnbreakfocusPC {
             _watchdogTimer.Tick += Watchdog_Tick;
         }
 
-        /* --- AUTH LOGIC --- */
+        /* --- AUTH LOGIC (LOCAL ONLY) --- */
         private void CompleteAuthentication() {
             AuthView.Visibility = Visibility.Collapsed;
             MainContainer.Visibility = Visibility.Visible;
@@ -55,23 +56,9 @@ namespace UnbreakfocusPC {
             CompleteAuthentication();
         }
 
-        private async void RestoreProfile_Click(object? sender, RoutedEventArgs e) {
-            string id = TxtRestoreId.Text.Trim();
-            string pin = TxtRestorePin.Text.Trim();
-            if (string.IsNullOrEmpty(id) || pin.Length != 4) { ShowAuthError("INVALID CREDENTIALS."); return; }
-
-            System.Windows.Controls.Button btn = (System.Windows.Controls.Button)sender!;
-            btn.Content = "VERIFYING..."; btn.IsEnabled = false;
-
-            UserData? cloudData = await Persistence.AuthenticateCloudAsync(id, pin);
-            if (cloudData != null) {
-                _user = cloudData;
-                Persistence.Save(_user);
-                CompleteAuthentication();
-            } else {
-                ShowAuthError("ACCESS DENIED. ID OR PIN INCORRECT.");
-                btn.Content = "SYNC & RESTORE"; btn.IsEnabled = true;
-            }
+        private void RestoreProfile_Click(object? sender, RoutedEventArgs e) {
+            // Cloud sync was skipped; disabled to prevent compiler errors
+            ShowAuthError("CLOUD SYNC CURRENTLY DISABLED.");
         }
 
         private void ShowAuthError(string message) { TxtAuthError.Text = message; TxtAuthError.Visibility = Visibility.Visible; }
@@ -81,7 +68,7 @@ namespace UnbreakfocusPC {
             if (string.IsNullOrWhiteSpace(TxtSubName.Text) || !int.TryParse(TxtSubMins.Text, out int mins) || mins <= 0) {
                 System.Windows.MessageBox.Show("Invalid Subject Data."); return;
             }
-            _user.Subjects.Add(new Subject { Name = " " + TxtSubName.Text.Trim(), GoalMins = mins }); // Added space for UI padding
+            _user.Subjects.Add(new Subject { Name = " " + TxtSubName.Text.Trim(), GoalMins = mins });
             Persistence.Save(_user);
             TxtSubName.Text = "Subject Name"; TxtSubMins.Text = "Mins";
             UpdateUI();
@@ -126,7 +113,6 @@ namespace UnbreakfocusPC {
                 _user.XP += 0.0033;
                 TxtTimer.Text = TimeSpan.FromSeconds(_secondsRemaining).ToString(@"mm\:ss");
                 
-                // Calculate percentage for the circular ring (100 -> 0)
                 double percentage = ((double)_secondsRemaining / _totalSeconds) * 100;
                 TimerRing.Progress = percentage;
             } else {
@@ -178,7 +164,7 @@ namespace UnbreakfocusPC {
             TxtRank.Text = $"Rank: {(_user.XP < 125 ? "Novice" : "Focus Elite")} | Level {_user.GetLevel()}";
             XPBar.Value = _user.XP % 100;
             TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
-            SubjectList.ItemsSource = null; // Force refresh
+            SubjectList.ItemsSource = null; 
             SubjectList.ItemsSource = _user.Subjects;
         }
 
