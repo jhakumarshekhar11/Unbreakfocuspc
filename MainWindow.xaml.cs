@@ -209,10 +209,23 @@ namespace UnbreakfocusPC {
         /* --- NAVIGATION & UI UPDATES --- */
         private void UpdateUI() {
             if (_user == null) return;
-            TxtUser.Text = _user.UniqueId;
-            TxtRank.Text = $"Rank: {(_user.XP < 125 ? "Novice" : "Focus Elite")} | Level {_user.GetLevel()}";
-            XPBar.Value = _user.XP % 100;
+
+            // Display Name and ID
+            TxtUser.Text = $"{_user.UserName.ToUpper()} [{_user.UniqueId}]";
+
+            // Calculate T-Minus days for the objective
+            int daysRemaining = (_user.TargetDate.Date - DateTime.Now.Date).Days;
+            string targetDisplay = string.IsNullOrEmpty(_user.TargetGoal) 
+                ? "NO ACTIVE TARGET" 
+                : $"OBJECTIVE: {_user.TargetGoal.ToUpper()} (T-MINUS {Math.Max(0, daysRemaining)} DAYS)";
+
+            // Append the target data below the rank
+            TxtRank.Text = $"Rank: {(_user.XP < 125 ? "Novice" : "Focus Elite")} | Level {_user.GetLevel()}\n{targetDisplay}";
+            
+            XPBar.Value = _user.XP % 100; // Simplified visual progression
             TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
+            
+            // Nulling the source first forces the WPF ItemsControl to redraw the list
             SubjectList.ItemsSource = null; 
             SubjectList.ItemsSource = _user.Subjects;
         }
