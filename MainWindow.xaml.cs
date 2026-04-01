@@ -39,13 +39,6 @@ namespace UnbreakfocusPC {
 
         private void ClearPlaceholder(object? sender, RoutedEventArgs e) {
             if (sender is System.Windows.Controls.TextBox tb && 
-               (tb.Text == "ENTER 4-DIGIT PIN" || tb.Text == "PIN" || tb.Text == "Subject Name" || tb.Text == "Mins")) {
-                tb.Text = string.Empty;
-            }
-        }
-
-        private void ClearPlaceholder(object? sender, RoutedEventArgs e) {
-            if (sender is System.Windows.Controls.TextBox tb && 
                (tb.Text == "ENTER 4-DIGIT PIN" || tb.Text == "PIN" || tb.Text == "Subject Name" || 
                 tb.Text == "Mins" || tb.Text == "CUSTOM_ID" || tb.Text == "ENTER OPERATOR NAME" || 
                 tb.Text == "CUSTOM GOAL NAME")) {
