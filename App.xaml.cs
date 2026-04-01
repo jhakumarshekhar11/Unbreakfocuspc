@@ -1,33 +1,26 @@
-using Microsoft.UI.Xaml;
-using System;
+using System.Windows;
 using System.IO;
+using Google.Cloud.Firestore;
 
-namespace Unbreakfocuspc
+namespace UnbreakfocusPC
 {
     public partial class App : Application
     {
-        private Window m_window;
+        public static FirestoreDb? Database { get; private set; }
 
-        public App()
+        protected override void OnStartup(StartupEventArgs e)
         {
-            // 🟢 FIX: Attach the black box BEFORE the UI initializes
-            this.UnhandledException += App_UnhandledException;
-            this.InitializeComponent();
-        }
+            base.OnStartup(e);
 
-        private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
-        {
-            e.Handled = true; 
-            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string logPath = Path.Combine(desktop, "Unbreakfocus_CrashLog.txt");
-            File.WriteAllText(logPath, "FATAL CRASH: \n" + e.Exception.ToString());
-            Environment.Exit(1);
-        }
-
-        protected override void OnLaunched(LaunchActivatedEventArgs args)
-        {
-            m_window = new MainWindow();
-            m_window.Activate();
+            // Path to your Firebase credentials - Must be in the root folder
+            string authPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "google-services.json");
+            
+            if (File.Exists(authPath))
+            {
+                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", authPath);
+                // Replace 'your-project-id' with your actual Firebase Project ID
+                // Database = FirestoreDb.Create("your-project-id"); 
+            }
         }
     }
 }

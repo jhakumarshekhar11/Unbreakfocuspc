@@ -1,46 +1,26 @@
-name: Build Unbreakfocus
-
+name: Build and Release Unbreakfocus PC
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+    branches: [ main ]
 jobs:
   build:
-    name: Build Windows App
     runs-on: windows-latest
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Setup .NET 8
+    - uses: actions/checkout@v4
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
-
-    # 🟢 NEW: Bring in the actual Visual Studio build engine
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Restore Dependencies
-      # 🟢 FIX: Use msbuild to restore
-      run: msbuild Unbreakfocuspc.csproj -t:Restore -p:Configuration=Release -p:Platform=x64
-
-    - name: Publish Standalone App
-      # 🟢 FIX: Use msbuild to publish. It knows exactly where the PRI tools live.
-      run: >
-        msbuild Unbreakfocuspc.csproj 
-        -t:Publish 
-        -p:Configuration=Release 
-        -p:Platform=x64 
-        -p:RuntimeIdentifier=win-x64 
-        -p:SelfContained=true
-
-    - name: Upload Release Artifact
-      uses: actions/upload-artifact@v4
+    - name: Restore
+      run: dotnet restore
+    - name: Publish
+      run: dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishReadyToRun=true -o ./publish
+    - name: Zip Artifact
+      run: Compress-Archive -Path ./publish/* -DestinationPath ./UnbreakfocusPC.zip
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
       with:
-        name: Unbreakfocuspc
-        # 🟢 Note: MSBuild injects the 'x64' folder into the path automatically
-        path: bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\publish\
+        files: UnbreakfocusPC.zip
+        tag_name: v${{ github.run_number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

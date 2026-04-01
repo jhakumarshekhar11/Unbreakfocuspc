@@ -1,309 +1,104 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using System;
-using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Threading;
 using System.Linq;
 
-namespace Unbreakfocuspc
-{
-    public sealed partial class MainWindow : Window
-    {
+namespace UnbreakfocusPC {
+    public partial class MainWindow : Window {
+        private UserData _user;
         private DispatcherTimer _timer;
-        private FocusEngine _engine;
-        private Subject _currentSubject;
-        private int _sessionSeconds = 0;
-        private Microsoft.UI.Windowing.AppWindow _appWindow;
+        private DispatcherTimer _watchdogTimer;
+        private int _secondsRemaining;
+        private bool _isStrictMode = true;
+        private string[] _distractions = { "chrome", "discord", "steam", "brave", "msedge" };
 
-        public ObservableCollection<Subject> SubjectsData { get; } = new ObservableCollection<Subject>();
-        public ObservableCollection<CalendarDay> CalendarDays { get; } = new ObservableCollection<CalendarDay>();
+        public MainWindow() {
+            InitializeComponent();
+            _user = Persistence.Load() ?? CreateNewUser();
+            UpdateUI();
+            
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _timer.Tick += Timer_Tick;
+            
+            _watchdogTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            _watchdogTimer.Tick += Watchdog_Tick;
+        }
 
-        private string _editingSubjectId = null;
+        private UserData CreateNewUser() {
+            var newUser = new UserData { UniqueId = "@UF-" + new Random().Next(1000, 9999), UserName = "Operator", XP = 0, Streak = 0 };
+            newUser.Subjects.Add(new Subject { Name = "Deep Work", GoalMins = 25 });
+            Persistence.Save(newUser);
+            return newUser;
+        }
 
-        public MainWindow()
-        {
-            try
-            {
-                // 1. Data load MUST happen before UI
-                DataManager.Instance.LoadUser();
+        private void Timer_Tick(object sender, EventArgs e) {
+            if (_secondsRemaining > 0) {
+                _secondsRemaining--;
+                _user.XP += 0.0033; // ~0.2 XP per minute
+                TxtTimer.Text = TimeSpan.FromSeconds(_secondsRemaining).ToString(@"mm\:ss");
+            } else {
+                EndSession(true);
+            }
+        }
 
-                // 2. Parse XAML without bindings fighting the system
-                this.InitializeComponent();
+        private void Watchdog_Tick(object sender, EventArgs e) {
+            string active = Watchdog.GetActiveProcessName();
+            if (_distractions.Contains(active)) {
+                BlockerOverlay.Visibility = Visibility.Visible;
+                if (_isStrictMode) ApplyPenalty();
+            } else {
+                BlockerOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
 
-                // 3. 🟢 Safely attach Data context now that the UI exists
-                if (CalendarGrid != null) CalendarGrid.ItemsSource = CalendarDays;
-                if (SubjectsList != null) SubjectsList.ItemsSource = SubjectsData;
+        private void ApplyPenalty() {
+            _user.XP = Math.Max(0, _user.XP - 150);
+            _user.Streak = 0;
+            EndSession(false);
+            MessageBox.Show("PENALTY APPLIED: -150 XP & STREAK RESET.");
+        }
 
-                // 4. Setup Window
-                IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
-                _appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-                _appWindow.Resize(new Windows.Graphics.SizeInt32(1000, 800));
+        private void EndSession(bool success) {
+            _timer.Stop();
+            _watchdogTimer.Stop();
+            EngineView.Visibility = Visibility.Collapsed;
+            if (success) _user.Streak++;
+            Persistence.Save(_user);
+            UpdateUI();
+        }
 
-                string iconPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "Assets", "logo.ico");
-                if (System.IO.File.Exists(iconPath))
-                {
-                    _appWindow.SetIcon(iconPath);
-                }
+        private void UpdateUI() {
+            TxtUser.Text = _user.UniqueId;
+            TxtRank.Text = $"Rank: {(_user.XP < 125 ? "Novice" : "Focus Elite")} | Level {_user.GetLevel()}";
+            XPBar.Value = _user.XP % 100; // Simplified scaling for UI
+            TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
+            SubjectList.ItemsSource = _user.Subjects.ToList();
+        }
 
-                // 5. Engine & Timers
-                _engine = new FocusEngine();
-                _engine.OnDistractionDetected += Engine_DistractionDetected;
+        private void StartFocus_Click(object sender, RoutedEventArgs e) {
+            var sub = (Subject)((FrameworkElement)sender).Tag;
+            _secondsRemaining = sub.GoalMins * 60;
+            EngineView.Visibility = Visibility.Visible;
+            _timer.Start();
+            _watchdogTimer.Start();
+        }
 
-                _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-                _timer.Tick += Timer_Tick;
+        private void Nav_Hub(object sender, RoutedEventArgs e) => ShowView(HubView);
+        private void Nav_Focus(object sender, RoutedEventArgs e) => ShowView(FocusView);
+        private void Nav_Store(object sender, RoutedEventArgs e) => ShowView(StoreView);
 
-                CheckFirstRun();
+        private void ShowView(UIElement view) {
+            HubView.Visibility = FocusView.Visibility = StoreView.Visibility = Visibility.Collapsed;
+            view.Visibility = Visibility.Visible;
+        }
+
+        private void BuyFreeze_Click(object sender, RoutedEventArgs e) {
+            if (_user.XP >= 1500) {
+                _user.XP -= 1500;
+                _user.Inventory.Add("STREAK_FREEZE");
+                Persistence.Save(_user);
                 UpdateUI();
-                GenerateCalendar();
-            }
-            catch (Exception ex)
-            {
-                string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                System.IO.File.WriteAllText(System.IO.Path.Combine(desktop, "UF_Init_Error.txt"), ex.ToString());
-                throw;
             }
         }
-
-        private void FullScreen_Click(object sender, RoutedEventArgs e)
-        {
-            if (_appWindow.Presenter.Kind == Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen)
-            {
-                _appWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.Default);
-                FullScreenBtn.Content = new SymbolIcon(Symbol.FullScreen) { Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White) };
-            }
-            else
-            {
-                _appWindow.SetPresenter(Microsoft.UI.Windowing.AppWindowPresenterKind.FullScreen);
-                FullScreenBtn.Content = new SymbolIcon(Symbol.BackToWindow) { Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White) };
-            }
-        }
-
-        private void MainNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-        {
-            if (args.IsSettingsSelected)
-            {
-                HubView.Visibility = Visibility.Collapsed;
-                FocusView.Visibility = Visibility.Collapsed;
-                SettingsView.Visibility = Visibility.Visible;
-                return;
-            }
-
-            var item = args.SelectedItem as NavigationViewItem;
-            var tag = item?.Tag?.ToString();
-            HubView.Visibility = tag == "Hub" ? Visibility.Visible : Visibility.Collapsed;
-            FocusView.Visibility = tag == "Focus" ? Visibility.Visible : Visibility.Collapsed;
-            SettingsView.Visibility = Visibility.Collapsed;
-        }
-
-        private void UpdateUI()
-        {
-            var user = DataManager.Instance.CurrentUser;
-            if (user == null) return;
-
-            SubjectsData.Clear();
-            foreach (var sub in user.Subjects) SubjectsData.Add(sub);
-
-            UserNameTxt.Text = user.UserName?.ToUpper() ?? "ASPIRANT";
-            XpTxt.Text = $"LEVEL {user.Level} • {user.Xp} XP";
-            LevelProgress.Value = user.LevelProgress * 100;
-            StreakTxt.Text = $"{user.Streak} DAYS";
-
-            int totalMins = user.DailyGlobalSeconds / 60;
-            TodayFocusTxt.Text = $"{totalMins} MINS";
-            StrictModeToggle.IsOn = user.IsStrictMode;
-
-            if (user.TargetDate.HasValue)
-            {
-                int daysLeft = (user.TargetDate.Value.Date - DateTime.Now.Date).Days;
-                TargetCountdownTxt.Text = daysLeft >= 0 ? $"{daysLeft} DAYS TO TARGET" : "TARGET REACHED";
-                TargetCountdownTxt.Foreground = daysLeft < 30 ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.OrangeRed) : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
-            }
-        }
-
-        private void CheckFirstRun()
-        {
-            var user = DataManager.Instance.CurrentUser;
-            if (user == null || string.IsNullOrEmpty(user.UserName) || user.UserName == "Aspirant")
-            {
-                OnboardingOverlay.Visibility = Visibility.Visible;
-            }
-        }
-
-        private void InitializeProfile_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(NewUserNameEntry.Text)) return;
-            var user = DataManager.Instance.CurrentUser;
-            user.UserName = NewUserNameEntry.Text;
-            user.Target = (TargetPicker.SelectedItem as ComboBoxItem)?.Content.ToString();
-            user.TargetDate = TargetDateEntry.Date.DateTime;
-            DataManager.Instance.SaveUser();
-            OnboardingOverlay.Visibility = Visibility.Collapsed;
-            UpdateUI();
-        }
-
-        private void OpenSubjectEditor_Click(object sender, RoutedEventArgs e)
-        {
-            _editingSubjectId = null;
-            SubjectEditorTitle.Text = "NEW SUBJECT";
-            SubjectNameEntry.Text = "";
-            SubjectGoalEntry.Text = "60";
-            SubjectEditorOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void EditSubject_Click(object sender, RoutedEventArgs e)
-        {
-            var id = (sender as Button)?.Tag?.ToString();
-            var subject = DataManager.Instance.CurrentUser.Subjects.FirstOrDefault(s => s.Id == id);
-            if (subject != null)
-            {
-                _editingSubjectId = id;
-                SubjectEditorTitle.Text = "EDIT SUBJECT";
-                SubjectNameEntry.Text = subject.Name;
-                SubjectGoalEntry.Text = subject.GoalMins.ToString();
-                SubjectEditorOverlay.Visibility = Visibility.Visible;
-            }
-        }
-
-        private void CloseSubjectEditor_Click(object sender, RoutedEventArgs e) => SubjectEditorOverlay.Visibility = Visibility.Collapsed;
-
-        private void SaveSubject_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(SubjectNameEntry.Text)) return;
-            var user = DataManager.Instance.CurrentUser;
-            int goal = int.TryParse(SubjectGoalEntry.Text, out int g) ? g : 60;
-
-            if (_editingSubjectId != null)
-            {
-                var existing = user.Subjects.First(s => s.Id == _editingSubjectId);
-                existing.Name = SubjectNameEntry.Text;
-                existing.GoalMins = goal;
-            }
-            else
-            {
-                user.Subjects.Add(new Subject { Name = SubjectNameEntry.Text, GoalMins = goal });
-            }
-
-            DataManager.Instance.SaveUser();
-            SubjectEditorOverlay.Visibility = Visibility.Collapsed;
-            UpdateUI();
-        }
-
-        private void GenerateCalendar()
-        {
-            CalendarDays.Clear();
-            var user = DataManager.Instance.CurrentUser;
-            if (user == null) return;
-
-            DateTime now = DateTime.Now;
-            int daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
-            int dailyGoal = user.StreakThresholdSeconds / 60;
-
-            for (int i = 1; i <= daysInMonth; i++)
-            {
-                DateTime dayDate = new DateTime(now.Year, now.Month, i);
-                string key = dayDate.ToString("yyyy-MM-dd");
-                string hexColor = "#1A1A1A";
-
-                if (dayDate.Date < now.Date)
-                {
-                    if (user.History.TryGetValue(key, out int minsDone))
-                    {
-                        if (minsDone >= dailyGoal) hexColor = "#FBBF24";
-                        else if (minsDone > 0) hexColor = "#38BDF8";
-                        else hexColor = "#EF4444";
-                    }
-                }
-                else if (dayDate.Date == now.Date)
-                {
-                    int currentMins = user.DailyGlobalSeconds / 60;
-                    if (currentMins >= dailyGoal) hexColor = "#FBBF24";
-                    else if (currentMins > 0) hexColor = "#38BDF8";
-                }
-
-                CalendarDays.Add(new CalendarDay { Day = i, HexColor = hexColor, IsToday = (dayDate.Date == now.Date) });
-            }
-        }
-
-        private void ShowStreakAnalytics_Click(object sender, RoutedEventArgs e)
-        {
-            var user = DataManager.Instance.CurrentUser;
-            double multiplier = 1.0 + (Math.Min(user.Streak, 25) * 0.02);
-            int bonusPercent = (int)((multiplier - 1.0) * 100);
-            AnalyticsDetailsTxt.Text = $"Current Rank: {user.Level}\nLifetime XP: {user.LifetimeXp}\n\nSTREAK BONUS: +{bonusPercent}%";
-            AnalyticsOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void CloseAnalytics_Click(object sender, RoutedEventArgs e) => AnalyticsOverlay.Visibility = Visibility.Collapsed;
-
-        private void LaunchEngine_Click(object sender, RoutedEventArgs e)
-        {
-            var id = (sender as Button)?.Tag?.ToString();
-            _currentSubject = DataManager.Instance.CurrentUser.Subjects.First(s => s.Id == id);
-            EngineSubjectTxt.Text = _currentSubject.Name.ToUpper();
-            UpdateTimerText();
-            SubjectDashboard.Visibility = Visibility.Collapsed;
-            ActiveEngineView.Visibility = Visibility.Visible;
-        }
-
-        private void UpdateTimerText()
-        {
-            if (_currentSubject == null) return;
-            int goalSecs = _currentSubject.GoalMins * 60;
-            int remaining = Math.Max(0, goalSecs - _currentSubject.TimeDone);
-            int overtime = Math.Max(0, _currentSubject.TimeDone - goalSecs);
-            int display = remaining > 0 ? remaining : overtime;
-            string prefix = remaining == 0 ? "+" : "";
-            TimeSpan ts = TimeSpan.FromSeconds(display);
-            TimerDisplay.Text = $"{prefix}{ts.Minutes:D2}:{ts.Seconds:D2}";
-            TimerDisplay.Foreground = remaining == 0 ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.SpringGreen) : new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White);
-        }
-
-        private void StartTimer_Click(object sender, RoutedEventArgs e)
-        {
-            if (_timer.IsEnabled) { _timer.Stop(); _engine.StopShield(); }
-            else { _timer.Start(); _engine.StartShield(); DataManager.Instance.CurrentUser.IsStrictMode = true; }
-        }
-
-        private void Timer_Tick(object sender, object e)
-        {
-            var user = DataManager.Instance.CurrentUser;
-            _sessionSeconds++;
-            user.DailyGlobalSeconds++;
-            _currentSubject.TimeDone++;
-            _currentSubject.XpBuffer += (0.2 / 60.0);
-            if (_currentSubject.XpBuffer >= 1.0) { user.Xp++; user.LifetimeXp++; _currentSubject.XpBuffer -= 1.0; }
-            if (_sessionSeconds % 30 == 0) DataManager.Instance.SaveUser();
-            UpdateTimerText();
-        }
-
-        private void AbortTimer_Click(object sender, RoutedEventArgs e)
-        {
-            _timer.Stop(); _engine.StopShield();
-            var user = DataManager.Instance.CurrentUser;
-            if (user.IsStrictMode) { user.Xp -= (int)(user.Xp * 0.25); user.Streak = 0; }
-            DataManager.Instance.SaveUser();
-            ActiveEngineView.Visibility = Visibility.Collapsed;
-            SubjectDashboard.Visibility = Visibility.Visible;
-            UpdateUI();
-            GenerateCalendar();
-        }
-
-        private void StrictMode_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (StrictModeToggle.IsOn) { DataManager.Instance.CurrentUser.IsStrictMode = true; DataManager.Instance.SaveUser(); }
-        }
-
-        private async void ShowCredits_Click(object sender, RoutedEventArgs e)
-        {
-            ContentDialog cd = new ContentDialog { Title = "CONSTRUCTORS", Content = "DEVELOPER: SHEKHAR KUMAR JHA\n\nBuilt for Academic Dominance.\nVersion 2.5.0 (Windows Native)", CloseButtonText = "RESUME MISSION", XamlRoot = this.Content.XamlRoot };
-            await cd.ShowAsync();
-        }
-
-        private void Engine_DistractionDetected(object sender, string app)
-        {
-            DispatcherQueue.TryEnqueue(() => { DistractedAppTxt.Text = $"DETECTION: {app}"; OverlayBlocker.Visibility = Visibility.Visible; });
-        }
-
-        private void DismissBlocker_Click(object sender, RoutedEventArgs e) => OverlayBlocker.Visibility = Visibility.Collapsed;
     }
 }
