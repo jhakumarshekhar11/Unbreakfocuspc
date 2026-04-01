@@ -89,7 +89,7 @@ namespace UnbreakfocusPC {
             }
 
             _user = new UserData { 
-                UniqueId = "@UF-" + idSuffix, 
+                UniqueId = "@UFDESK-" + idSuffix, 
                 Pin = TxtNewPin.Text, 
                 UserName = operatorName, 
                 TargetGoal = targetGoal,
@@ -102,8 +102,11 @@ namespace UnbreakfocusPC {
             Persistence.Save(_user);
             CompleteAuthentication();
         }
-
-        private void ShowAuthError(string message) { TxtAuthError.Text = message; TxtAuthError.Visibility = Visibility.Visible; }
+        
+        private void RestoreProfile_Click(object? sender, RoutedEventArgs e) {
+            // Cloud sync was disabled in previous steps to satisfy local builds
+            ShowAuthError("CLOUD RESTORE IS CURRENTLY OFFLINE.");
+        }
 
         /* --- FOCUS CRUD LOGIC --- */
         private void AddSub_Click(object? sender, RoutedEventArgs e) {
