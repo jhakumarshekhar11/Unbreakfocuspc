@@ -137,7 +137,7 @@
 
                 <Grid x:Name="EngineView" Visibility="Collapsed" Background="#0A0A0A" Panel.ZIndex="50">
                     <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <ui:ProgressRing x:Name="TimerRing" Progress="100" Width="400" Height="400" Thickness="12" Foreground="#34D399" Background="#222" IsIndeterminate="False"/>
+                        <ui:ProgressRing x:Name="TimerRing" Progress="100" Width="400" Height="400" Foreground="#34D399" Background="#222" IsIndeterminate="False"/>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock x:Name="TxtTimer" Text="25:00" FontSize="80" HorizontalAlignment="Center" Foreground="#34D399" FontWeight="Light"/>
                             <TextBlock x:Name="TxtFocusStatus" Text="FLOW STATE ACTIVE" HorizontalAlignment="Center" Foreground="#38BDF8" Margin="0,10,0,0"/>
