@@ -203,15 +203,20 @@ namespace UnbreakfocusPC {
                 using RegistryKey? key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
                 if (key != null) {
                     if (ChkStartup.IsChecked == true) {
-                        // CRITICAL FIX: Environment.ProcessPath works for Single-File executables.
-                        string exePath = Environment.ProcessPath ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
+                        // CRITICAL FIX: Removed Assembly.Location to fix IL3000 warning. Environment.ProcessPath is correct for single-file apps.
+                        string exePath = Environment.ProcessPath!;
                         key.SetValue("UnbreakfocusPC", exePath);
                     } else {
                         key.DeleteValue("UnbreakfocusPC", false);
                     }
                 }
             } catch (Exception ex) {
-                System.Windows.MessageBox.Show($"Could not update Startup settings. Ensure you have proper permissions.\n\n{ex.Message}", "Registry Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // CRITICAL FIX: Fully qualified MessageBoxButton and MessageBoxImage to fix CS0104 error.
+                System.Windows.MessageBox.Show(
+                    $"Could not update Startup settings. Ensure you have proper permissions.\n\n{ex.Message}", 
+                    "Registry Error", 
+                    System.Windows.MessageBoxButton.OK, 
+                    System.Windows.MessageBoxImage.Warning);
             }
         }
 
