@@ -3,9 +3,7 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Linq;
 using Wpf.Ui.Controls;
-using System.Windows.Media;
 using System.ComponentModel;
-using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.Win32;
 
 namespace UnbreakfocusPC {
@@ -21,7 +19,7 @@ namespace UnbreakfocusPC {
         private bool _isExplicitExit = false;
         
         private BlockerWindow? _activeBlocker;
-        private System.Windows.Forms.NotifyIcon _trayIcon;
+        private System.Windows.Forms.NotifyIcon? _trayIcon; 
 
         private string[] _blockedProcesses = { "discord", "steam", "riotclient" };
         private string[] _blockedTitles = { "youtube", "twitter", "reddit", "netflix", "instagram" };
@@ -34,9 +32,14 @@ namespace UnbreakfocusPC {
             SetupTrayIcon();
             CheckStartupStatus();
             
+            // Show app or force onboarding based on profile existence
             if (!string.IsNullOrEmpty(_user.UniqueId)) {
                 CompleteAuthentication();
-                RequirePinLock(); // Lock the app on launch if profile exists
+                RequirePinLock(); 
+            } else {
+                // First launch: show auth, hide main app
+                AuthView.Visibility = Visibility.Visible;
+                MainContainer.Visibility = Visibility.Collapsed;
             }
             
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -46,13 +49,12 @@ namespace UnbreakfocusPC {
         }
 
         private UserData CreateNewUser() {
-            var newUser = new UserData { UniqueId = "", UserName = "" };
-            return newUser;
+            return new UserData { UniqueId = "", UserName = "" };
         }
 
-        // --- AUTH, ONBOARDING & PIN LOCK ---
+        // --- AUTH & ONBOARDING ---
         private void CompleteAuthentication() {
-            if (AuthView != null) AuthView.Visibility = Visibility.Collapsed;
+            AuthView.Visibility = Visibility.Collapsed;
             MainContainer.Visibility = Visibility.Visible;
             UpdateUI();
         }
@@ -71,7 +73,7 @@ namespace UnbreakfocusPC {
 
             if (string.IsNullOrWhiteSpace(idSuffix) || idSuffix == "CUSTOM_ID") { ShowAuthError("INVALID ID."); return; }
             if (string.IsNullOrWhiteSpace(operatorName) || operatorName == "ENTER OPERATOR NAME") { ShowAuthError("INVALID NAME."); return; }
-            if (TxtNewPin.Text.Length != 4 || !int.TryParse(TxtNewPin.Text, out _)) { ShowAuthError("INVALID PIN FORMAT."); return; }
+            if (TxtNewPin.Text.Length != 4 || !int.TryParse(TxtNewPin.Text, out _)) { ShowAuthError("INVALID PIN FORMAT. MUST BE 4 DIGITS."); return; }
 
             _user = new UserData { 
                 UniqueId = "@UFDESK-" + idSuffix, 
@@ -86,10 +88,6 @@ namespace UnbreakfocusPC {
             CompleteAuthentication();
         }
 
-        private void RestoreProfile_Click(object? sender, RoutedEventArgs e) {
-            ShowAuthError("CLOUD RESTORE IS DISABLED FOR DESKTOP.");
-        }
-
         private void ShowAuthError(string message) {
             if (TxtAuthError != null) {
                 TxtAuthError.Text = message;
@@ -97,6 +95,7 @@ namespace UnbreakfocusPC {
             }
         }
 
+        // --- PIN LOCK LOGIC ---
         private void RequirePinLock() {
             if (!string.IsNullOrEmpty(_user.Pin)) {
                 PinLockOverlay.Visibility = Visibility.Visible;
@@ -116,8 +115,7 @@ namespace UnbreakfocusPC {
 
         protected override void OnStateChanged(EventArgs e) {
             base.OnStateChanged(e);
-            // Relock the app when brought back from the system tray
-            if (this.WindowState == WindowState.Normal && !string.IsNullOrEmpty(_user.Pin)) {
+            if (this.WindowState == WindowState.Normal && !string.IsNullOrEmpty(_user.Pin) && AuthView.Visibility == Visibility.Collapsed) {
                 RequirePinLock();
             }
         }
@@ -126,11 +124,9 @@ namespace UnbreakfocusPC {
         private void CheckMidnightReset() {
             if (_user.LastDate.Date < DateTime.Now.Date) {
                 _user.BreachesToday = 0;
-                
                 if (_user.Subjects.Count > 0) {
                     _user.History[_user.LastDate.ToString("yyyy-MM-dd")] = true; 
                 }
-                
                 _user.LastDate = DateTime.Now;
                 Persistence.Save(_user);
             }
@@ -151,31 +147,31 @@ namespace UnbreakfocusPC {
             menu.Items.Add("Open Hub", null, (s, e) => { this.Show(); this.WindowState = WindowState.Normal; });
             menu.Items.Add("Exit Sequence", null, (s, e) => {
                 if (_timer.IsEnabled && _isStrictMode) {
-                    System.Windows.MessageBox.Show("STRICT MODE ACTIVE. EXIT DENIED.", "Access Denied", MessageBoxButton.OK, MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show("STRICT MODE ACTIVE. EXIT DENIED.", "Access Denied", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                     return;
                 }
                 _isExplicitExit = true;
-                Application.Current.Shutdown();
+                System.Windows.Application.Current.Shutdown();
             });
             _trayIcon.ContextMenuStrip = menu;
         }
 
         protected override void OnClosing(CancelEventArgs e) {
             if (_isExplicitExit) {
-                _trayIcon.Dispose();
+                _trayIcon?.Dispose();
                 base.OnClosing(e);
                 return;
             }
 
             if (_timer.IsEnabled && _isStrictMode) {
                 e.Cancel = true;
-                System.Windows.MessageBox.Show("SHIELD ACTIVE. YOU CANNOT CLOSE THE APP.", "Strict Mode", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("SHIELD ACTIVE. YOU CANNOT CLOSE THE APP.", "Strict Mode", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                 return;
             }
 
             e.Cancel = true;
             this.Hide();
-            new ToastContentBuilder().AddText("Unbreakfocus is still active in the background.").Show();
+            _trayIcon?.ShowBalloonTip(3000, "Unbreakfocus PC", "Still active in the background.", System.Windows.Forms.ToolTipIcon.Info);
         }
 
         private void CheckStartupStatus() {
@@ -186,7 +182,7 @@ namespace UnbreakfocusPC {
         private void StartupToggle_Changed(object sender, RoutedEventArgs e) {
             using RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)!;
             if (ChkStartup.IsChecked == true) {
-                key.SetValue("UnbreakfocusPC", System.Reflection.Assembly.GetExecutingLibrary().Location);
+                key.SetValue("UnbreakfocusPC", System.Reflection.Assembly.GetExecutingAssembly().Location);
             } else {
                 key.DeleteValue("UnbreakfocusPC", false);
             }
@@ -195,7 +191,7 @@ namespace UnbreakfocusPC {
         // --- SETTINGS CRUD ---
         private void SaveSettings_Click(object sender, RoutedEventArgs e) {
             if (TxtEditPin.Password.Length > 0 && TxtEditPin.Password.Length != 4) {
-                System.Windows.MessageBox.Show("PIN must be exactly 4 digits.", "Invalid Configuration");
+                System.Windows.MessageBox.Show("PIN must be exactly 4 digits.", "Invalid Configuration", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                 return;
             }
 
@@ -204,7 +200,7 @@ namespace UnbreakfocusPC {
             
             Persistence.Save(_user);
             UpdateUI();
-            System.Windows.MessageBox.Show("Configuration updated securely.", "Settings Saved");
+            System.Windows.MessageBox.Show("Configuration updated securely.", "Settings Saved", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
         }
 
         // --- POMODORO ENGINE LOGIC ---
@@ -212,9 +208,7 @@ namespace UnbreakfocusPC {
             if (_secondsRemaining > 0) {
                 _secondsRemaining--;
                 
-                if (!_isRestMode) {
-                    _user.XP += 0.0033; // ~0.2 XP per min
-                }
+                if (!_isRestMode) _user.XP += 0.0033;
 
                 TxtTimer.Text = TimeSpan.FromSeconds(_secondsRemaining).ToString(@"mm\:ss");
                 TimerRing.Progress = ((double)_secondsRemaining / _totalSeconds) * 100;
@@ -230,8 +224,8 @@ namespace UnbreakfocusPC {
                     _totalSeconds = 5 * 60; // 5 Minute Rest
                     _secondsRemaining = _totalSeconds;
                     TimerRing.Progress = 100;
-                    TimerRing.Foreground = new SolidColorBrush(Colors.SkyBlue);
-                    new ToastContentBuilder().AddText("REST CYCLE ACTIVE").AddText("Take a 5 minute break.").Show();
+                    TimerRing.Foreground = System.Windows.Media.Brushes.SkyBlue;
+                    _trayIcon?.ShowBalloonTip(3000, "REST CYCLE ACTIVE", "Take a 5 minute break.", System.Windows.Forms.ToolTipIcon.Info);
                 } else {
                     EndSession(true);
                 }
@@ -243,7 +237,7 @@ namespace UnbreakfocusPC {
                 _totalSeconds = sub.GoalMins * 60;
                 _secondsRemaining = _totalSeconds;
                 TimerRing.Progress = 100;
-                TimerRing.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34D399"));
+                TimerRing.Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#34D399"));
                 EngineView.Visibility = Visibility.Visible;
                 _timer.Start();
                 _watchdogTimer.Start();
@@ -263,10 +257,10 @@ namespace UnbreakfocusPC {
 
             if (success) {
                 _user.Streak++;
-                System.Media.SystemSounds.Asterisk.Play(); // Auditory success alert
-                new ToastContentBuilder().AddText("CYCLE COMPLETE").AddText("Focus session finished successfully.").Show();
+                System.Media.SystemSounds.Asterisk.Play(); 
+                _trayIcon?.ShowBalloonTip(3000, "CYCLE COMPLETE", "Focus session finished successfully.", System.Windows.Forms.ToolTipIcon.Info);
             } else {
-                System.Media.SystemSounds.Hand.Play(); // Auditory penalty alert
+                System.Media.SystemSounds.Hand.Play(); 
             }
 
             Persistence.Save(_user);
@@ -283,10 +277,7 @@ namespace UnbreakfocusPC {
             if (isBreach) {
                 if (_activeBlocker == null) {
                     _activeBlocker = new BlockerWindow(_isStrictMode);
-                    
-                    // Hook into the escape hatch event
                     _activeBlocker.OverrideTriggered += (s, ev) => ApplyPenalty();
-                    
                     _activeBlocker.Show();
                 }
                 if (_isStrictMode) ApplyPenalty();
@@ -304,20 +295,20 @@ namespace UnbreakfocusPC {
             _user.XP = Math.Max(0, _user.XP - penalty);
             _user.Streak = 0;
             EndSession(false);
-            new ToastContentBuilder().AddText("STRICT MODE BREACH").AddText($"Penalty Applied: -{penalty} XP").Show();
+            _trayIcon?.ShowBalloonTip(3000, "STRICT MODE BREACH", $"Penalty Applied: -{penalty} XP", System.Windows.Forms.ToolTipIcon.Warning);
         }
 
         // --- UI & CRUD LOGIC ---
         private void AddSub_Click(object? sender, RoutedEventArgs e) {
-            TxtSubMins.BorderBrush = Brushes.Transparent;
-            TxtSubName.BorderBrush = Brushes.Transparent;
+            TxtSubMins.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            TxtSubName.BorderBrush = System.Windows.Media.Brushes.Transparent;
 
-            if (string.IsNullOrWhiteSpace(TxtSubName.Text)) { TxtSubName.BorderBrush = Brushes.Red; return; }
-            if (!int.TryParse(TxtSubMins.Text, out int mins) || mins <= 0) { TxtSubMins.BorderBrush = Brushes.Red; return; }
+            if (string.IsNullOrWhiteSpace(TxtSubName.Text) || TxtSubName.Text == "Subject Name") { TxtSubName.BorderBrush = System.Windows.Media.Brushes.Red; return; }
+            if (!int.TryParse(TxtSubMins.Text, out int mins) || mins <= 0) { TxtSubMins.BorderBrush = System.Windows.Media.Brushes.Red; return; }
 
             _user.Subjects.Add(new Subject { Name = TxtSubName.Text.Trim(), GoalMins = mins });
             Persistence.Save(_user);
-            TxtSubName.Text = ""; TxtSubMins.Text = "";
+            TxtSubName.Text = "Subject Name"; TxtSubMins.Text = "Mins";
             UpdateUI();
         }
 
@@ -359,11 +350,11 @@ namespace UnbreakfocusPC {
                 var block = new System.Windows.Controls.Border {
                     Width = 15, Height = 15, Margin = new Thickness(2),
                     CornerRadius = new CornerRadius(2),
-                    Background = Brushes.DarkGray
+                    Background = System.Windows.Media.Brushes.DarkGray
                 };
 
                 if (_user.History.ContainsKey(dateKey)) {
-                    block.Background = _user.History[dateKey] ? Brushes.MediumSeaGreen : Brushes.DarkRed;
+                    block.Background = _user.History[dateKey] ? System.Windows.Media.Brushes.MediumSeaGreen : System.Windows.Media.Brushes.DarkRed;
                 }
                 HeatmapGrid.Children.Add(block);
             }
