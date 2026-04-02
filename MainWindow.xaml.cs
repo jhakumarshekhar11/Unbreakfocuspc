@@ -134,10 +134,22 @@ namespace UnbreakfocusPC {
 
         private void SetupTrayIcon() {
             _trayIcon = new System.Windows.Forms.NotifyIcon {
-                Icon = new System.Drawing.Icon("Assets/logo.ico"),
                 Visible = true,
                 Text = "Unbreakfocus PC"
             };
+
+            // CRITICAL FIX: Extract the icon from the embedded resources rather than the hard drive
+            try {
+                var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/logo.ico"))?.Stream;
+                if (iconStream != null) {
+                    _trayIcon.Icon = new System.Drawing.Icon(iconStream);
+                } else {
+                    _trayIcon.Icon = System.Drawing.SystemIcons.Shield; // Fallback
+                }
+            } catch {
+                _trayIcon.Icon = System.Drawing.SystemIcons.Shield; // Fallback
+            }
+
             _trayIcon.DoubleClick += (s, e) => {
                 this.Show();
                 this.WindowState = WindowState.Normal;
@@ -175,16 +187,31 @@ namespace UnbreakfocusPC {
         }
 
         private void CheckStartupStatus() {
-            using RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)!;
-            ChkStartup.IsChecked = key.GetValue("UnbreakfocusPC") != null;
+            try {
+                // CRITICAL FIX: Added try/catch. Antivirus often blocks registry reads on startup.
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", false);
+                if (key != null) {
+                    ChkStartup.IsChecked = key.GetValue("UnbreakfocusPC") != null;
+                }
+            } catch { }
         }
 
         private void StartupToggle_Changed(object sender, RoutedEventArgs e) {
-            using RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true)!;
-            if (ChkStartup.IsChecked == true) {
-                key.SetValue("UnbreakfocusPC", System.Reflection.Assembly.GetExecutingAssembly().Location);
-            } else {
-                key.DeleteValue("UnbreakfocusPC", false);
+            if (!this.IsLoaded) return; // Prevent this from firing during app initialization
+
+            try {
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                if (key != null) {
+                    if (ChkStartup.IsChecked == true) {
+                        // CRITICAL FIX: Environment.ProcessPath works for Single-File executables.
+                        string exePath = Environment.ProcessPath ?? System.Reflection.Assembly.GetExecutingAssembly().Location;
+                        key.SetValue("UnbreakfocusPC", exePath);
+                    } else {
+                        key.DeleteValue("UnbreakfocusPC", false);
+                    }
+                }
+            } catch (Exception ex) {
+                System.Windows.MessageBox.Show($"Could not update Startup settings. Ensure you have proper permissions.\n\n{ex.Message}", "Registry Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
