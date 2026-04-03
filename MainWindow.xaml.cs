@@ -139,16 +139,15 @@ namespace UnbreakfocusPC {
                 Text = "Unbreakfocus PC"
             };
 
-            // CRITICAL FIX: Extract the icon from the embedded resources rather than the hard drive
             try {
                 var iconStream = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Assets/logo.ico"))?.Stream;
                 if (iconStream != null) {
                     _trayIcon.Icon = new System.Drawing.Icon(iconStream);
                 } else {
-                    _trayIcon.Icon = System.Drawing.SystemIcons.Shield; // Fallback
+                    _trayIcon.Icon = System.Drawing.SystemIcons.Shield; 
                 }
             } catch {
-                _trayIcon.Icon = System.Drawing.SystemIcons.Shield; // Fallback
+                _trayIcon.Icon = System.Drawing.SystemIcons.Shield; 
             }
 
             _trayIcon.DoubleClick += (s, e) => {
@@ -189,7 +188,6 @@ namespace UnbreakfocusPC {
 
         private void CheckStartupStatus() {
             try {
-                // CRITICAL FIX: Added try/catch. Antivirus often blocks registry reads on startup.
                 using RegistryKey? key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", false);
                 if (key != null) {
                     ChkStartup.IsChecked = key.GetValue("UnbreakfocusPC") != null;
@@ -198,13 +196,12 @@ namespace UnbreakfocusPC {
         }
 
         private void StartupToggle_Changed(object sender, RoutedEventArgs e) {
-            if (!this.IsLoaded) return; // Prevent this from firing during app initialization
+            if (!this.IsLoaded) return; 
 
             try {
                 using RegistryKey? key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
                 if (key != null) {
                     if (ChkStartup.IsChecked == true) {
-                        // CRITICAL FIX: Removed Assembly.Location to fix IL3000 warning. Environment.ProcessPath is correct for single-file apps.
                         string exePath = Environment.ProcessPath!;
                         key.SetValue("UnbreakfocusPC", exePath);
                     } else {
@@ -212,7 +209,6 @@ namespace UnbreakfocusPC {
                     }
                 }
             } catch (Exception ex) {
-                // CRITICAL FIX: Fully qualified MessageBoxButton and MessageBoxImage to fix CS0104 error.
                 System.Windows.MessageBox.Show(
                     $"Could not update Startup settings. Ensure you have proper permissions.\n\n{ex.Message}", 
                     "Registry Error", 
@@ -301,24 +297,27 @@ namespace UnbreakfocusPC {
         }
 
         // --- ADVANCED WATCHDOG ---
+        private int _breachWarningSeconds = 0;
+
         private void Watchdog_Tick(object? sender, EventArgs e) {
             if (_isRestMode) return; 
-
             var (process, title) = Watchdog.GetActiveWindowInfo();
             bool isBreach = _blockedProcesses.Contains(process) || _blockedTitles.Any(t => title.Contains(t));
-
+        
             if (isBreach) {
-                if (_activeBlocker == null) {
-                    _activeBlocker = new BlockerWindow(_isStrictMode);
-                    _activeBlocker.OverrideTriggered += (s, ev) => ApplyPenalty();
-                    _activeBlocker.Show();
+                _breachWarningSeconds++;
+                if (_breachWarningSeconds > 2) { // 4 seconds (timer runs every 2s)
+                    if (_activeBlocker == null) {
+                        _activeBlocker = new BlockerWindow(_isStrictMode);
+                        _activeBlocker.OverrideTriggered += (s, ev) => ApplyPenalty();
+                        _activeBlocker.Show();
+                    }
+                } else {
+                    _trayIcon?.ShowBalloonTip(2000, "DISTRACTION DETECTED", "Close it in 4 seconds or the shield will activate!", System.Windows.Forms.ToolTipIcon.Warning);
                 }
-                if (_isStrictMode) ApplyPenalty();
             } else {
-                if (_activeBlocker != null) {
-                    _activeBlocker.Close();
-                    _activeBlocker = null;
-                }
+                _breachWarningSeconds = 0;
+                if (_activeBlocker != null) { _activeBlocker.Close(); _activeBlocker = null; }
             }
         }
 
@@ -363,7 +362,8 @@ namespace UnbreakfocusPC {
         }
 
         private void UpdateUI() {
-            Application.Current.Dispatcher.Invoke(() => {
+            // CRITICAL FIX: Changed Application.Current.Dispatcher to this.Dispatcher
+            this.Dispatcher.Invoke(() => {
                 if (_user == null) return;
 
                 TxtUser.Text = $"{_user.UserName.ToUpper()} [{_user.UniqueId}]";
@@ -371,7 +371,6 @@ namespace UnbreakfocusPC {
                 XPBar.Value = _user.XP % 100;
                 TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
 
-                // Safety check: only refresh if the list is actually visible
                 if (FocusView.Visibility == Visibility.Visible) {
                     SubjectList.ItemsSource = null;
                     SubjectList.ItemsSource = _user.Subjects;
@@ -382,24 +381,30 @@ namespace UnbreakfocusPC {
         }
 
         private void DrawHeatmap() {
-            if (HeatmapGrid == null || HubView.Visibility != Visibility.Visible) return;
+            if (HeatmapGrid == null) return;
 
-            Application.Current.Dispatcher.Invoke(() => {
-                HeatmapGrid.Children.Clear();
-                for (int i = 29; i >= 0; i--) {
-                    string dateKey = DateTime.Now.AddDays(-i).ToString("yyyy-MM-dd");
-                    var block = new System.Windows.Controls.Border {
-                        Width = 15, Height = 15, Margin = new Thickness(2),
-                        CornerRadius = new CornerRadius(2),
-                        Background = System.Windows.Media.Brushes.DarkGray
-                    };
+            this.Dispatcher.Invoke(() => {
+                // Only build the grid if it's empty
+                if (HeatmapGrid.Children.Count == 0) {
+                    for (int i = 0; i < 30; i++) {
+                        HeatmapGrid.Children.Add(new System.Windows.Controls.Border {
+                            Width = 15, Height = 15, Margin = new Thickness(2), CornerRadius = new CornerRadius(2)
+                        });
+                    }
+                }
+
+                // Just update colors
+                for (int i = 0; i < 30; i++) {
+                    int dayOffset = 29 - i;
+                    string dateKey = DateTime.Now.AddDays(-dayOffset).ToString("yyyy-MM-dd");
+                    var block = (System.Windows.Controls.Border)HeatmapGrid.Children[i];
 
                     if (_user.History.ContainsKey(dateKey)) {
                         block.Background = _user.History[dateKey] ? 
-                            System.Windows.Media.Brushes.MediumSeaGreen : 
-                            System.Windows.Media.Brushes.DarkRed;
+                            System.Windows.Media.Brushes.MediumSeaGreen : System.Windows.Media.Brushes.DarkRed;
+                    } else {
+                        block.Background = System.Windows.Media.Brushes.DarkGray;
                     }
-                    HeatmapGrid.Children.Add(block);
                 }
             });
         }
@@ -408,7 +413,6 @@ namespace UnbreakfocusPC {
         private void Nav_Hub(object? sender, RoutedEventArgs e) => ShowView(HubView);
         private void Nav_Focus(object? sender, RoutedEventArgs e) {
             ShowView(FocusView);
-            // Defer the UI update until the layout is stable
             Dispatcher.BeginInvoke(new Action(() => UpdateUI()), System.Windows.Threading.DispatcherPriority.Background);
         }
         private void Nav_Store(object? sender, RoutedEventArgs e) => ShowView(StoreView);
