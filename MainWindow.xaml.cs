@@ -60,10 +60,11 @@ namespace UnbreakfocusPC {
         }
 
         private void ClearPlaceholder(object? sender, RoutedEventArgs e) {
-            if (sender is System.Windows.Controls.TextBox tb && 
-               (tb.Text == "ENTER 4-DIGIT PIN" || tb.Text == "PIN" || tb.Text == "Subject Name" || 
-                tb.Text == "Mins" || tb.Text == "CUSTOM_ID" || tb.Text == "ENTER OPERATOR NAME")) {
-                tb.Text = string.Empty;
+            if (sender is System.Windows.Controls.TextBox tb) {
+                string[] placeholders = { "Subject Name", "Mins", "PIN", "CUSTOM_ID" };
+                if (placeholders.Contains(tb.Text)) {
+                    tb.Text = string.Empty;
+                }
             }
         }
 
@@ -362,39 +363,54 @@ namespace UnbreakfocusPC {
         }
 
         private void UpdateUI() {
-            if (_user == null) return;
-            TxtUser.Text = $"{_user.UserName.ToUpper()} [{_user.UniqueId}]";
-            TxtRank.Text = $"Rank: Level {_user.GetLevel()}";
-            XPBar.Value = _user.XP % 100;
-            TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
-            
-            SubjectList.ItemsSource = null;
-            SubjectList.ItemsSource = _user.Subjects;
+            Application.Current.Dispatcher.Invoke(() => {
+                if (_user == null) return;
 
-            DrawHeatmap();
+                TxtUser.Text = $"{_user.UserName.ToUpper()} [{_user.UniqueId}]";
+                TxtRank.Text = $"Rank: Level {_user.GetLevel()}";
+                XPBar.Value = _user.XP % 100;
+                TxtStreak.Text = $"Current Streak: {_user.Streak} Days";
+
+                // Safety check: only refresh if the list is actually visible
+                if (FocusView.Visibility == Visibility.Visible) {
+                    SubjectList.ItemsSource = null;
+                    SubjectList.ItemsSource = _user.Subjects;
+                }
+
+                DrawHeatmap();
+            });
         }
 
         private void DrawHeatmap() {
-            if (HeatmapGrid == null) return;
-            HeatmapGrid.Children.Clear();
-            for (int i = 29; i >= 0; i--) {
-                string dateKey = DateTime.Now.AddDays(-i).ToString("yyyy-MM-dd");
-                var block = new System.Windows.Controls.Border {
-                    Width = 15, Height = 15, Margin = new Thickness(2),
-                    CornerRadius = new CornerRadius(2),
-                    Background = System.Windows.Media.Brushes.DarkGray
-                };
+            if (HeatmapGrid == null || HubView.Visibility != Visibility.Visible) return;
 
-                if (_user.History.ContainsKey(dateKey)) {
-                    block.Background = _user.History[dateKey] ? System.Windows.Media.Brushes.MediumSeaGreen : System.Windows.Media.Brushes.DarkRed;
+            Application.Current.Dispatcher.Invoke(() => {
+                HeatmapGrid.Children.Clear();
+                for (int i = 29; i >= 0; i--) {
+                    string dateKey = DateTime.Now.AddDays(-i).ToString("yyyy-MM-dd");
+                    var block = new System.Windows.Controls.Border {
+                        Width = 15, Height = 15, Margin = new Thickness(2),
+                        CornerRadius = new CornerRadius(2),
+                        Background = System.Windows.Media.Brushes.DarkGray
+                    };
+
+                    if (_user.History.ContainsKey(dateKey)) {
+                        block.Background = _user.History[dateKey] ? 
+                            System.Windows.Media.Brushes.MediumSeaGreen : 
+                            System.Windows.Media.Brushes.DarkRed;
+                    }
+                    HeatmapGrid.Children.Add(block);
                 }
-                HeatmapGrid.Children.Add(block);
-            }
+            });
         }
 
         // --- NAVIGATION ---
         private void Nav_Hub(object? sender, RoutedEventArgs e) => ShowView(HubView);
-        private void Nav_Focus(object? sender, RoutedEventArgs e) => ShowView(FocusView);
+        private void Nav_Focus(object? sender, RoutedEventArgs e) {
+            ShowView(FocusView);
+            // Defer the UI update until the layout is stable
+            Dispatcher.BeginInvoke(new Action(() => UpdateUI()), System.Windows.Threading.DispatcherPriority.Background);
+        }
         private void Nav_Store(object? sender, RoutedEventArgs e) => ShowView(StoreView);
         
         private void Nav_Settings(object? sender, RoutedEventArgs e) {
