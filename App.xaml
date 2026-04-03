@@ -20,7 +20,7 @@
                 <Style.Resources>
                     <VisualBrush x:Key="HelpBrush" TileMode="None" Stretch="None" AlignmentX="Left">
                         <VisualBrush.Visual>
-                            <TextBlock ItemName="HelpText" Text="{Binding Path=Tag, RelativeSource={RelativeSource TemplatedParent}}" Foreground="Gray" Margin="5,0,0,0"/>
+                            <TextBlock x:Name="HelpText" Text="{Binding Path=Tag, RelativeSource={RelativeSource TemplatedParent}}" Foreground="Gray" Margin="5,0,0,0"/>
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Style.Resources>
@@ -33,6 +33,7 @@
                     </Trigger>
                 </Style.Triggers>
             </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>
