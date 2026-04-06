@@ -1,30 +1,37 @@
-name: Build and Release Unbreakfocus PC
+name: Build and Publish WinUI 3 App
+
+# This triggers the workflow whenever you push to main, 
+# or you can click a button to run it manually.
 on:
   push:
-    branches: [ main ]
-
-permissions:
-  contents: write
+    branches: [ "main" ]
+  workflow_dispatch: 
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest # MUST be Windows for WinUI 3
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
-    - name: Restore
-      run: dotnet restore
-    - name: Publish
-      run: dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishReadyToRun=true -o ./publish
-    - name: Zip Artifact
-      run: Compress-Archive -Path ./publish/* -DestinationPath ./UnbreakfocusPC.zip
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
+        dotnet-version: '8.0.x'
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore Dependencies
+      run: msbuild Unbreakfocuspc.csproj -t:restore -p:Configuration=Release -p:Platform=x64
+
+    - name: Publish App (Bypassing dotnet bug)
+      run: msbuild Unbreakfocuspc.csproj -t:Publish -p:Configuration=Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 -p:WindowsAppSDKSelfContained=true
+
+    - name: Upload Finished EXE
+      uses: actions/upload-artifact@v4
       with:
-        files: UnbreakfocusPC.zip
-        tag_name: v${{ github.run_number }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: UnbreakfocusPC-Windows-x64
+        # This grabs the final compiled folder so you can download it
+        path: bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\

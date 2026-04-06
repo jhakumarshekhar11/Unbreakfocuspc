@@ -1,0 +1,59 @@
+<Page x:Class="Unbreakfocuspc.Views.SettingsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="#0A0A0A">
+
+    <ScrollViewer Padding="30">
+        <StackPanel MaxWidth="800" HorizontalAlignment="Center" Spacing="25" Width="800">
+            
+            <TextBlock Text="SYSTEM PREFERENCES" FontSize="28" FontWeight="Bold" Foreground="White" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+
+            <Border Background="#1A1A1A" CornerRadius="12" Padding="30" BorderBrush="#33FFFFFF" BorderThickness="1">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="USER PROFILE" FontSize="14" FontWeight="Bold" Foreground="#00FFCC" Margin="0,0,0,5"/>
+                    <TextBox x:Name="NameInput" Header="Operator Name" PlaceholderText="Enter name..." HorizontalAlignment="Stretch"/>
+                    <Button Content="Update Name" Click="UpdateName_Click" Background="#202020" Foreground="White" HorizontalAlignment="Right" Width="150"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#1A1A1A" CornerRadius="12" Padding="30" BorderBrush="#33FFFFFF" BorderThickness="1">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="MISSION OBJECTIVE" FontSize="14" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,5"/>
+                    
+                    <ComboBox x:Name="MissionSelector" Header="Current Mission" HorizontalAlignment="Stretch" SelectionChanged="MissionSelector_SelectionChanged">
+                        <ComboBoxItem Content="JEE Mains"/>
+                        <ComboBoxItem Content="JEE Advanced"/>
+                        <ComboBoxItem Content="NEET"/>
+                        <ComboBoxItem Content="Class 10th CBSE"/>
+                        <ComboBoxItem Content="Class 10th ICSE"/>
+                        <ComboBoxItem Content="Custom"/>
+                    </ComboBox>
+
+                    <CalendarDatePicker x:Name="TargetDateInput" Header="Target Date" HorizontalAlignment="Stretch" DateChanged="TargetDateInput_DateChanged"/>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#1A1A1A" CornerRadius="12" Padding="30" BorderBrush="#33FFFFFF" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="STRICT MODE" FontSize="14" FontWeight="Bold" Foreground="#FF3333" Margin="0,0,0,5"/>
+                        <TextBlock Text="Prevents pausing or aborting timers. Resets at midnight." FontSize="12" Foreground="Gray" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    
+                    <ToggleSwitch x:Name="StrictModeToggle" Grid.Column="1" Toggled="StrictModeToggle_Toggled" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                </Grid>
+            </Border>
+
+            <StackPanel Spacing="5" HorizontalAlignment="Center" Margin="0,30,0,40">
+                <TextBlock Text="Unbreakfocus PC v1.0" Foreground="#444444" FontSize="12" HorizontalAlignment="Center"/>
+                <TextBlock Text="Developed by Shekhar Kumar Jha" Foreground="#444444" FontSize="12" HorizontalAlignment="Center"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

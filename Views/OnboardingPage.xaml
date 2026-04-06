@@ -1,0 +1,25 @@
+<Page x:Class="Unbreakfocuspc.Views.OnboardingPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="#000000">
+
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="400" Spacing="20">
+            
+            <TextBlock Text="SYSTEM INITIALIZATION" FontSize="32" FontWeight="Bold" Foreground="#00FFCC" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+            <TextBlock Text="Create your profile to begin tracking." FontSize="16" Foreground="#888888" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+            <TextBox x:Name="NameInput" Header="Operator Name" PlaceholderText="Enter your name..." Background="#1A1A1A" Foreground="White"/>
+
+            <TextBox x:Name="GoalInput" Header="Primary Mission (e.g., JEE, NEET, Finals)" PlaceholderText="What are you studying for?" Background="#1A1A1A" Foreground="White"/>
+
+            <CalendarDatePicker x:Name="DateInput" Header="Mission Target Date" Width="400" Background="#1A1A1A" Foreground="White"/>
+
+            <Button Content="INITIALIZE SYSTEM" Background="#00FFCC" Foreground="Black" FontWeight="Bold" 
+                    FontSize="18" Padding="20,15" CornerRadius="8" HorizontalAlignment="Stretch" Margin="0,30,0,0"
+                    Click="Initialize_Click"/>
+            
+            <TextBlock x:Name="ErrorText" Foreground="#FF3333" HorizontalAlignment="Center" Visibility="Collapsed"/>
+        </StackPanel>
+    </Grid>
+</Page>

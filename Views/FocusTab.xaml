@@ -1,0 +1,41 @@
+<Page x:Class="Unbreakfocuspc.Views.FocusTab"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:models="using:Unbreakfocuspc.Models" 
+      Background="#0A0A0A">
+
+    <Grid Padding="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
+            <TextBlock Text="FOCUS SESSIONS" FontSize="28" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+            <Button Content="+ Add Subject" Background="#202020" Foreground="#00FFCC" CornerRadius="8" Padding="15,10" Click="AddSubject_Click"/>
+        </StackPanel>
+
+        <GridView Grid.Row="1" x:Name="SubjectGridView" ItemsSource="{x:Bind ActiveSubjects, Mode=OneWay}">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="models:SubjectCard">
+                    <Border MinHeight="180" Width="260" Background="#1A1A1A" CornerRadius="12" Padding="20" 
+                            BorderBrush="#38BDF8" BorderThickness="2" Margin="0,0,20,20">
+                        <StackPanel VerticalAlignment="Center">
+                            <Grid Margin="0,0,0,10">
+                                <TextBlock Text="{x:Bind SubjectName}" FontSize="20" FontWeight="Bold" Foreground="White"/>
+                                <Button Content="✕" Click="DeleteSubject_Click" Background="Transparent" Foreground="#FF3333" HorizontalAlignment="Right"/>
+                            </Grid>
+                
+                            <TextBlock Text="{x:Bind TimeRemainingString, Mode=OneWay}" FontSize="36" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                            
+                            <Button Content="Start Focusing" 
+                                    Click="StartTimer_Click" 
+                                    Background="#00FFCC" Foreground="Black" 
+                                    FontWeight="Bold" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+    </Grid>
+</Page>

@@ -1,0 +1,42 @@
+<Page x:Class="Unbreakfocuspc.Views.TimerPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+
+            <TextBlock x:Name="SubjectTitleText"
+                       Text="Loading Subject..."
+                       FontSize="40"
+                       Foreground="White"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="TimeDisplay"
+                       Text="00:00"
+                       FontSize="150"
+                       FontWeight="Bold"
+                       Foreground="#00FFCC"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,50"/>
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Spacing="20">
+                
+                <Button x:Name="PauseButton"
+                    Content="PAUSE"
+                    Width="120" Height="50"
+                    Click="PauseButton_Click"
+                    Background="#33FFFFFF" Foreground="White"
+                    Visibility="{x:Bind IsPauseVisible, Mode=OneWay}" />
+                <Button x:Name="AbortButton"
+                    Content="ABORT SESSION"
+                    Width="150" Height="50"
+                    Click="AbortSession_Click"
+                    Background="#FF3333" Foreground="White"
+                    IsEnabled="{x:Bind IsAbortEnabled, Mode=OneWay}" />         
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>
